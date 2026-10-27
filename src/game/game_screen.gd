@@ -12,6 +12,9 @@ extends Control
 const BOARD_MARGIN_TOP := 78.0
 const BOARD_MARGIN_BOTTOM := 172.0
 const BOARD_MARGIN_SIDE := 16.0
+## Inset left on a phone-sized viewport: the HUD floats over the board instead of reserving
+## margins, so the board can use the whole screen.
+const COMPACT_INSET := 8.0
 const SPEEDS: Array[int] = [1, 2, 3]
 
 var level_index: int = 0
@@ -139,6 +142,7 @@ func _build_hud() -> void:
 	_hud.sell_pressed.connect(_on_sell)
 	_hud.targeting_pressed.connect(_on_targeting)
 	_hud.module_pressed.connect(_on_module)
+	_hud.cancel_pressed.connect(_cancel_build)
 	_hud.panel_closed.connect(_deselect_tower)
 	_director = WaveDirector.new()
 	_director.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -168,12 +172,24 @@ func _apply_starting_state() -> void:
 
 # --- Layout ---------------------------------------------------------------------------------------
 
+## Phones (and small windows) get the board at the full screen with the HUD floating on top of
+## it; desktop keeps the inset layout with the HUD living in the reserved margins.
+func _compact_viewport() -> bool:
+	if OS.has_feature("mobile"):
+		return true
+	return size.x < 900.0 or size.y < 560.0
+
+
 func _layout() -> void:
 	if _board_root == null:
 		return
+	var compact := _compact_viewport()
+	var margin_side := COMPACT_INSET if compact else BOARD_MARGIN_SIDE
+	var margin_top := COMPACT_INSET if compact else BOARD_MARGIN_TOP
+	var margin_bottom := COMPACT_INSET if compact else BOARD_MARGIN_BOTTOM
 	var available := Rect2(
-		Vector2(BOARD_MARGIN_SIDE, BOARD_MARGIN_TOP),
-		size - Vector2(BOARD_MARGIN_SIDE * 2.0, BOARD_MARGIN_TOP + BOARD_MARGIN_BOTTOM))
+		Vector2(margin_side, margin_top),
+		size - Vector2(margin_side * 2.0, margin_top + margin_bottom))
 	if available.size.x <= 0.0 or available.size.y <= 0.0:
 		return
 	var board_size := grid.board_size()
@@ -218,7 +234,7 @@ func _tick_medics(delta: float) -> void:
 			var enemy := other as Enemy
 			if enemy != medic and enemy.hp < enemy.max_hp:
 				enemy.heal(enemy.max_hp * medic.heal_rate * 0.25)
-				_fx.ring(enemy.global_position, 12.0, Palette.HEAL, 0.3)
+				_fx.ring(enemy.position, 12.0, Palette.HEAL, 0.3)
 
 
 func _tick_shake(delta: float) -> void:
@@ -276,9 +292,15 @@ func _unhandled_input(event: InputEvent) -> void:
 func _handle_board_tap(screen_position: Vector2) -> void:
 	var local := _board_root.to_local(screen_position)
 	var cell := grid.cell_of(local)
-	if not grid.in_bounds(cell) and _pending_ability == "" and _build_mode == "":
-		_deselect_tower()
-		return
+	if not grid.in_bounds(cell):
+		# Tapping off the board while a tower is armed cancels the placement (the "cancel zone");
+		# an armed ability still casts where the player pointed.
+		if _build_mode != "":
+			_cancel_build()
+			return
+		if _pending_ability == "":
+			_deselect_tower()
+			return
 
 	if _pending_ability != "":
 		_cast_ability(Vector2(local))
@@ -337,12 +359,14 @@ func _on_build_selected(tower_id: String) -> void:
 		_board.set_preview_tower("")
 		_hud.set_selected_tower("")
 		_board.clear_hover()
+		_hud.set_build_mode_active(false)
 		return
 	_build_mode = tower_id
 	_pending_ability = ""
 	_deselect_tower()
 	_board.set_preview_tower(tower_id)
 	_hud.set_selected_tower(tower_id)
+	_hud.set_build_mode_active(true)
 	var def := GameData.tower(tower_id)
 	if gold < int(def.get("cost", 0)):
 		_hud.toast(Loc.t("ui.reason.no_gold"), Palette.DANGER)
@@ -380,8 +404,10 @@ func place_tower(tower_id: String, cell: Vector2i) -> String:
 	_fx.dust(tower.position, Palette.CELL_BUILDABLE)
 	Audio.play_sfx("build", -4.0, randf_range(0.95, 1.05))
 	_hud.set_gold(gold)
-	# Placing several towers in a row is the common case, so the mode stays armed.
+	# Placing several towers in a row is the common case, so the mode stays armed — but the build
+	# bar comes back now that the player is no longer reaching for a tile under it.
 	_hud.set_selected_tower(_build_mode)
+	_hud.set_build_mode_active(false)
 	return ""
 
 
@@ -416,7 +442,20 @@ func _select_tower(tower: Tower) -> void:
 	_build_mode = ""
 	_pending_ability = ""
 	_board.set_preview_tower("")
+	_hud.set_build_mode_active(false)
 	_hud.show_tower_panel(tower, gold)
+
+
+## Drops an armed build without placing: the cancel button, a repeated build tap or an
+## out-of-board tap all end here, and the build bar returns.
+func _cancel_build() -> void:
+	if _build_mode == "":
+		return
+	_build_mode = ""
+	_board.set_preview_tower("")
+	_board.clear_hover()
+	_hud.set_selected_tower("")
+	_hud.set_build_mode_active(false)
 
 
 func _deselect_tower() -> void:
@@ -426,6 +465,7 @@ func _deselect_tower() -> void:
 	_hud.hide_tower_panel()
 	if _build_mode == "":
 		_hud.set_selected_tower("")
+		_hud.set_build_mode_active(false)
 
 
 ## Upgrades a tower. Returns "" on success or the localisation key explaining the refusal.
@@ -609,9 +649,12 @@ func _fire_ability(ability_id: String, local_position: Vector2) -> void:
 			_fx.explosion(local_position, radius, Palette.GOLD)
 			Audio.play_sfx("shoot_cannon", -2.0, 0.75)
 			add_trauma(0.5)
-			for target in Targeting.in_radius(_enemies, local_position, radius, true, true):
+			# `local_position` is board-local (FX space); targeting reads global positions, so the
+			# same tap is converted once for the radius query.
+			var origin := _board_root.to_global(local_position)
+			for target in Targeting.in_radius(_enemies, origin, radius, true, true):
 				var enemy := target as Enemy
-				var falloff := Damage.splash_falloff(enemy.global_position.distance_to(local_position), radius)
+				var falloff := Damage.splash_falloff(enemy.global_position.distance_to(origin), radius)
 				_apply_damage(enemy, damage * falloff, {
 					"damage_type": "explosive", "pierce": 4.0, "element": "explosive",
 				})
@@ -671,7 +714,7 @@ func _on_enemy_died(enemy: Enemy) -> void:
 	gold_earned += enemy.gold
 	_hud.set_gold(gold)
 	Audio.play_sfx("death", -12.0, randf_range(0.9, 1.1))
-	_fx.impact(enemy.global_position, Palette.element_color("kinetic"), 1.2)
+	_fx.impact(enemy.position, Palette.element_color("kinetic"), 1.2)
 	_spawn_split(enemy)
 
 
@@ -702,7 +745,7 @@ func _spawn_split(enemy: Enemy) -> void:
 		child.leaked.connect(_on_enemy_leaked)
 		_enemies.append(child)
 		_director.on_enemy_spawned()
-		_fx.explosion(enemy.global_position, 18.0, Palette.DANGER)
+		_fx.explosion(enemy.position, 18.0, Palette.DANGER)
 
 
 func _on_enemy_leaked(enemy: Enemy) -> void:
@@ -733,8 +776,9 @@ func on_tower_fired(tower: Tower, target: Object, stats: Dictionary) -> void:
 	}
 	Audio.play_varied("shoot_" + tower.tower_id if Audio.SFX_FILES.has("shoot_" + tower.tower_id)
 		else "shoot_pulse", -14.0, 0.06)
+	# `_fx` draws in board-local space, so the muzzle (already local) is passed straight through.
 	_fx.muzzle(tower.muzzle_position(),
-		(Vector2(target.get("global_position")) - tower.global_position).normalized(),
+		(Vector2(target.get("position")) - tower.position).normalized(),
 		Palette.element_color(payload["element"]))
 
 	if String(stats.get("kind", "projectile")) == "projectile":
@@ -760,22 +804,24 @@ func _fire_beam(tower: Tower, target: Object, stats: Dictionary, payload: Dictio
 		var enemy := targets[i] as Enemy
 		if enemy == null or not is_instance_valid(enemy) or not enemy.alive:
 			continue
-		points.append(enemy.global_position)
+		points.append(enemy.position)
 		_apply_damage(enemy, Damage.chain_damage(float(payload["damage"]), i), payload)
 	_fx.beam(points, color, 3.5 if chain < 1.0 else 2.5, 0.14)
 
 
 func on_projectile_hit(projectile: Projectile) -> void:
 	var payload := projectile.payload
-	var hit_position := projectile.global_position
+	# FX draws in board-local space; targeting queries read global positions. Keep both.
+	var hit_local := projectile.position
+	var hit_global := projectile.global_position
 	var splash := float(payload.get("splash", 0.0))
 	var color := Palette.element_color(String(payload.get("element", "energy")))
 	if splash > 0.0:
-		_fx.explosion(hit_position, splash, color)
+		_fx.explosion(hit_local, splash, color)
 		Audio.play_sfx("hit", -14.0)
-		for target in Targeting.in_radius(_enemies, hit_position, splash, true, true):
+		for target in Targeting.in_radius(_enemies, hit_global, splash, true, true):
 			var enemy := target as Enemy
-			var falloff := Damage.splash_falloff(enemy.global_position.distance_to(hit_position), splash)
+			var falloff := Damage.splash_falloff(enemy.global_position.distance_to(hit_global), splash)
 			_apply_damage(enemy, float(payload["damage"]) * falloff, payload)
 	else:
 		# The target may have died (and been freed) while the shell was in flight: casting a
@@ -785,9 +831,9 @@ func on_projectile_hit(projectile: Projectile) -> void:
 			enemy = projectile.target as Enemy
 		if enemy != null and enemy.alive:
 			_apply_damage(enemy, float(payload["damage"]), payload)
-			_fx.impact(hit_position, color, 1.0)
+			_fx.impact(hit_local, color, 1.0)
 		else:
-			_fx.impact(hit_position, color, 0.6)
+			_fx.impact(hit_local, color, 0.6)
 
 
 func _apply_damage(enemy: Enemy, raw: float, payload: Dictionary) -> void:
@@ -804,7 +850,7 @@ func _apply_damage(enemy: Enemy, raw: float, payload: Dictionary) -> void:
 	if float(payload.get("dot_dps", 0.0)) > 0.0:
 		enemy.apply_dot(float(payload["dot_dps"]), float(payload.get("dot_duration", 2.0)))
 	if bool(App.get_setting("damage_numbers")):
-		_fx.number(enemy.global_position + Vector2(0, -14),
+		_fx.number(enemy.position + Vector2(0, -14),
 			str(roundi(resolved)), Palette.element_color(String(payload.get("element", "energy"))))
 	if killed:
 		add_trauma(0.06)
@@ -929,9 +975,13 @@ func _open_pause() -> void:
 	if _finished or _overlay != null:
 		return
 	App.set_paused(true)
+	# Pausing mid-placement would leave the build bar hidden on resume; drop the mode so the
+	# player comes back to a clean HUD.
+	_cancel_build()
+	_pending_ability = ""
+	_board.clear_ability_preview()
 	var overlay := Overlay.open(self, Loc.t("pause.title"),
 		Loc.t(String(level.get("name_key", ""))))
-	overlay.set_subtitle(Loc.t("settings.saved"))
 	overlay.add_row("wave", Loc.t("hud.wave"),
 		"%d / %d" % [_director.wave_index + 1, WavePlan.wave_count(level)], Palette.ACCENT)
 	# Each button closes the dialog first, so the overlay is always freed exactly once.
@@ -980,3 +1030,9 @@ func _on_setting_changed(key: String, value: Variant) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
 		Engine.time_scale = 1.0
+	elif what == NOTIFICATION_RESIZED and is_node_ready():
+		# The board is scaled into the available area; without this a resized window keeps the
+		# old framing. Everything under `_board_root` uses local coordinates, so re-scaling it
+		# does not disturb towers, enemies, projectiles or effects.
+		_layout()
+	super._notification(what)

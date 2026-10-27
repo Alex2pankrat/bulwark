@@ -13,6 +13,7 @@ signal build_selected(tower_id: String)
 signal call_wave_pressed()
 signal speed_pressed()
 signal pause_pressed()
+signal cancel_pressed()
 signal ability_pressed(ability_id: String)
 signal upgrade_pressed()
 signal sell_pressed()
@@ -30,7 +31,9 @@ var _status_hint: Label
 var _call_button: Button
 var _speed_button: Button
 var _speed_glyph: Glyph
+var _cancel_button: Button
 var _build_row: HBoxContainer
+var _build_mode_active := false
 var _ability_row: HBoxContainer
 var _preview_row: HBoxContainer
 var _tower_panel: TowerPanel
@@ -78,6 +81,13 @@ func _build_top_bar() -> Control:
 	_speed_button = UIKit.button("1×", "ChipButton", func() -> void: speed_pressed.emit())
 	_speed_button.custom_minimum_size = Vector2(58, CHIP_HEIGHT)
 	row.add_child(_speed_button)
+	# Visible only while a tower is armed for placement, so the player has an explicit way out
+	# (a "cancel zone") without tapping the armed build button again.
+	_cancel_button = UIKit.button(Loc.t("common.cancel"), "ChipButton",
+		func() -> void: cancel_pressed.emit())
+	_cancel_button.custom_minimum_size = Vector2(96, CHIP_HEIGHT)
+	_cancel_button.visible = false
+	row.add_child(_cancel_button)
 	row.add_child(UIKit.icon_button("pause", Palette.TEXT, func() -> void: pause_pressed.emit(), CHIP_HEIGHT))
 	return row
 
@@ -290,7 +300,19 @@ func set_selected_tower(tower_id: String) -> void:
 		(_build_buttons[id] as BuildButton).set_selected(String(id) == tower_id)
 
 
+## While a tower is armed for placement the build bar is hidden so it does not cover the tiles
+## the player is trying to tap; it returns as soon as the tower is placed or the placement is
+## cancelled (cancel button / out-of-board tap).
+func set_build_mode_active(active: bool) -> void:
+	_build_mode_active = active
+	_cancel_button.visible = active
+	if not active and not _tower_panel.visible:
+		_build_row.visible = true
+
+
 func show_tower_panel(tower: Tower, gold: int) -> void:
+	_build_mode_active = false
+	_cancel_button.visible = false
 	_build_row.visible = false
 	_tower_panel.visible = true
 	_tower_panel.refresh(tower, gold)
@@ -299,7 +321,8 @@ func show_tower_panel(tower: Tower, gold: int) -> void:
 
 func hide_tower_panel() -> void:
 	_tower_panel.visible = false
-	_build_row.visible = true
+	if not _build_mode_active:
+		_build_row.visible = true
 
 
 func update_tower_panel(tower: Tower, gold: int) -> void:

@@ -1,5 +1,8 @@
 extends Screen
-## Mission select: three cards with stars, best wave and lock state.
+## Mission select: cards with stars, best wave and lock state.
+##
+## Cards wrap into rows by the available width: three per row on a desktop window, one
+## row on a phone — so six missions stay readable without a horizontal scroll.
 
 const CARD_WIDTH := 280.0
 
@@ -14,13 +17,13 @@ func _build() -> void:
 	column.add_child(_build_header())
 
 	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
 
-	var row := UIKit.hbox(16)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var row := FlowContainer.new()
+	row.flow_direction = FlowContainer.FLOW_DIRECTION_LEFT_TO_RIGHT
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	scroll.add_child(row)
@@ -73,7 +76,6 @@ func _build_card(index: int) -> Control:
 	body.add_child(UIKit.label(
 		Loc.tf("level.progress", [int(progress.get("best_wave", 0))]), "TinyLabel"))
 	body.add_child(UIKit.spacer(false, true))
-	body.get_parent()  # panel is added by the caller
 
 	if not unlocked:
 		var locked := UIKit.button(Loc.t("common.locked"), "", Callable())

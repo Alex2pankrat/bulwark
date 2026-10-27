@@ -137,13 +137,14 @@ func _update_transform() -> void:
 	var dir := path.direction_at(distance)
 	if is_air:
 		position = base
-		# Planes bank into the direction of travel (top-down sprite points "up").
-		rotation = dir.angle() + SPRITE_ANGLE_OFFSET
 		# Slight vertical lift so fliers read as airborne even in a flat art style.
 		position += Vector2(0, -6)
 	else:
 		position = base + _lane_offset
-		rotation = 0.0
+	# Every sprite is drawn facing "up", so a quarter turn aligns it with the direction of
+	# travel. Ground units used to keep rotation 0 and always faced the top of the screen; they
+	# now turn at every bend like the fliers already did.
+	rotation = dir.angle() + SPRITE_ANGLE_OFFSET
 
 
 # --- Combat -------------------------------------------------------------------------------------

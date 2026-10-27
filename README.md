@@ -1,7 +1,7 @@
 # Bulwark
 
 **A minimalist tower defense for Android and desktop.**
-Flat, high-contrast art. Six towers, seven enemy types, fifteen waves per mission, three
+Flat, high-contrast art. Six towers, seven enemy types, fifteen waves per mission, six
 missions. One small, readable codebase — built to be forked.
 
 <p align="center">
@@ -31,7 +31,7 @@ makes a modern tower defense work is here, and nothing that does not.
 | **Platforms** | Android (phone/tablet, landscape), Windows, Linux, and Web |
 | **Engine** | Godot 4.7 (GDScript, Compatibility renderer — one rendering path on every target) |
 | **Code** | ~5,000 lines of typed GDScript + JSON content, no plugins or addons |
-| **Tests** | 167 unit assertions, a level smoke test, and an autoplay balance harness |
+| **Tests** | 173 unit assertions, a level smoke test, and an autoplay balance harness |
 | **Licence** | Code MIT · Art, SFX CC0 (Kenney) · Font OFL (Inter) · Music generated (CC0) |
 
 ## Features

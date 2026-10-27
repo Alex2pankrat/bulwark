@@ -17,24 +17,33 @@ var world: Node = null
 var _trail: Array[Vector2] = []
 
 
+## `from` and every position below are in **board-local** coordinates: the projectile lives
+## inside `_projectile_layer`, so its `position` is already the board space the FX layer draws
+## in. Mixing that with `target.global_position` (screen space) used to make shells veer off in
+## the wrong direction and never resolve — both ends are now converted through the parent.
 func setup(from: Vector2, at: Object, p_payload: Dictionary, p_speed: float, p_world: Node) -> void:
-	global_position = from
+	position = from
 	target = at
 	world = p_world
 	payload = p_payload
 	speed = maxf(60.0, p_speed)
 	color = Palette.element_color(String(p_payload.get("element", "energy")))
 	radius = float(p_payload.get("visual_radius", 3.5))
-	target_position = at.get("global_position") if at != null and is_instance_valid(at) else from
+	target_position = from
+	var parent_node := get_parent()
+	if at != null and is_instance_valid(at) and parent_node != null:
+		target_position = parent_node.to_local(at.get("global_position"))
 
 
 func _process(delta: float) -> void:
+	var parent_node := get_parent()
 	if target != null and is_instance_valid(target) and bool(target.get("alive")):
-		target_position = target.get("global_position")
+		if parent_node != null:
+			target_position = parent_node.to_local(target.get("global_position"))
 	var to_target := target_position - position
 	var step := speed * delta
 	if to_target.length() <= maxf(step, radius + 4.0):
-		global_position = target_position
+		position = target_position
 		_resolve()
 		return
 	_trail.push_front(position)

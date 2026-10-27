@@ -149,7 +149,8 @@ build, so layout regressions are visible rather than argued about.
   either language is missing).
 - **New enemy** → `data/enemies.json` + sprite + two l10n keys; special behaviour goes in
   `enemy.gd` behind a capability flag (`splits_into`, `heals_radius`, `is_air`).
-- **New mission** → `data/levels/level_04.json` + entries in `game_data.gd`'s level order.
-  Grids, paths, scenery and waves are all data.
+- **New mission** → drop `data/levels/level_07.json` (any `level_*.json` is auto-discovered and
+  ordered by filename) + `level.7.name` / `level.7.desc` in both l10n tables. Grids, paths,
+  scenery and waves are all data.
 - **New ability** → one entry in `abilities.gd`'s table plus an icon glyph and a HUD button;
   the cooldown/targeting machinery is generic.

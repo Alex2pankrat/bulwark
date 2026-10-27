@@ -142,8 +142,8 @@ func _process(delta: float) -> void:
 
 
 func _fire_at(target: Object) -> void:
-	var target_pos: Vector2 = target.get("global_position")
-	_aim = (target_pos - global_position).normalized()
+	var target_pos: Vector2 = target.get("position")
+	_aim = (target_pos - position).normalized()
 	if bool(stats.get("rotates", false)) and _sprite != null:
 		_sprite.rotation = _aim.angle() + PI * 0.5
 	world.on_tower_fired(self, target, stats)
@@ -151,8 +151,9 @@ func _fire_at(target: Object) -> void:
 
 # --- Visuals ------------------------------------------------------------------------------------
 
+## Muzzle hotspot in board-local coordinates (the same space the FX layer draws in).
 func muzzle_position() -> Vector2:
-	return global_position + _aim * 22.0
+	return position + _aim * 22.0
 
 
 func _draw() -> void:
