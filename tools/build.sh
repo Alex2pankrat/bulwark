@@ -27,6 +27,9 @@ if [[ "$TARGET" == all || "$TARGET" == web ]]; then
   build Web build/web/index.html
   rm -rf release/web && mkdir -p release/web
   cp build/web/* release/web/
+  # Pre-compress the big files so the local preview and any static host ship ~10 MB
+  # instead of 40 MB. tools/serve_web.py serves the .gz siblings with Content-Encoding.
+  python3 tools/serve_web.py --dir release/web --compress-only
   echo "   web build copied to release/web (serve it with tools/serve_web.py)"
 fi
 if [[ "$TARGET" == all || "$TARGET" == android ]]; then

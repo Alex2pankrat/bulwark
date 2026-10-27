@@ -98,8 +98,13 @@ The web export is plain static files (`release/web/`). It needs a real HTTP serv
 `index.html` from the filesystem will not work:
 
 ```bash
-python3 tools/serve_web.py --port 8080     # http://localhost:8080
+python3 tools/serve_web.py --port 8080              # http://localhost:8080
+python3 tools/serve_web.py --gzip --port 8080       # same, but serves ~10 MB gzip instead of 40 MB
 ```
+
+`tools/serve_web.py` sets `application/wasm` and the COOP/COEP headers Godot's web export
+needs, and serves pre-compressed `.gz` siblings when the browser accepts them. Any static host
+works too — just make sure `.wasm` is not served as `text/plain`.
 
 ## Controls
 
