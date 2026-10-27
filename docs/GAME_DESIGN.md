@@ -38,7 +38,7 @@ Supporting rules that keep it honest:
   towers degrade gracefully instead of becoming useless.
 - **Speed creeps ×1.006/wave** with a ×1.25 cap, so late waves feel urgent but never unfair.
 
-The result the harness enforces: a scripted competent player wins all three missions on Normal
+The result the harness enforces: a scripted competent player wins all six missions on Normal
 with 12–14 of 20 lives remaining. Comfortable, not trivial — a real player who builds well
 finishes with ~18 lives and 3 stars.
 
@@ -108,6 +108,9 @@ tool:
 | **01 · Outpost** | 300 | 20 | 18 s | 1.00 | 200 | a long switchback — teaches tower placement |
 | **02 · Crossroads** | 320 | 20 | 16 s | 1.04 | 204 | two tight S-bends: cannons shine, rails get long sightlines |
 | **03 · The Narrows** | 340 | 20 | 15 s | 1.09 | 239 | heaviest traffic, most flyers — anti-air tax is real |
+| **04 · The Switchback** | 400 | 20 | 15 s | 1.12 | 239 | zig-zag corridor: every bend is a natural kill zone |
+| **05 · The Divide** | 440 | 20 | 15 s | 1.14 | 239 | two long legs meeting at a knife-edge crossing |
+| **06 · The Gauntlet** | 480 | 20 | 15 s | 1.16 | 239 | the hardest HP curve yet — attrition and upgrades win here |
 
 Difficulty modifies HP, income and lives: **Easy** ×0.82 HP, ×1.15 gold, 25 lives, 3 % interest ·
 **Normal** ×1.0/×1.0, 20 lives, 5 % · **Hard** ×1.18 HP, ×0.95 gold, 15 lives, 4 %.
@@ -137,6 +140,6 @@ game is fully playable with all motion off, which is also why "reduce motion" ex
 - **No mazing/path-blocking.** Towers stand on buildable cells; the route is fixed. Mazing is a
   great mechanic but it makes a 14×10 board a puzzle game, and it does not read on a phone.
 - **No loot boxes, no ads, no energy timers, no IAP.** The whole game is the content.
-- **No procedural maps.** Three hand-tuned missions beat infinite random ones at this scale —
+- **No procedural maps.** Six hand-tuned missions beat infinite random ones at this scale —
   and the harness can only guarantee balance for authored content.
 - **No PvP or online anything.** Zero permissions, zero network calls, works offline forever.

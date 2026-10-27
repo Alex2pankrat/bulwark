@@ -147,6 +147,7 @@ func _play(index: int) -> void:
 
 
 ## Greedy: find the point on the route with the most enemies around it, if it is worth bombing.
+## Returns a board-local position, which is the space `GameScreen.cast_ability` expects.
 func _best_airstrike_point(game: GameScreen) -> Vector2:
 	var best := Vector2.INF
 	var best_count := 2
@@ -156,11 +157,11 @@ func _best_airstrike_point(game: GameScreen) -> Vector2:
 		var count := 0
 		for other in game.get_enemies():
 			if is_instance_valid(other) and other.alive \
-					and enemy.global_position.distance_to(other.global_position) <= 2.0 * 64.0:
+				and enemy.global_position.distance_to(other.global_position) <= 2.0 * 64.0:
 				count += 1
 		if count > best_count:
 			best_count = count
-			best = enemy.global_position
+			best = game._board_root.to_local(enemy.global_position)
 	return best
 
 

@@ -61,7 +61,7 @@ func _test_game_data() -> void:
 	_ok(problems.is_empty(), "content database has no problems: %s" % [problems])
 	_eq(GameData.tower_ids().size(), 6, "six towers are defined")
 	_eq(GameData.enemies().size(), 7, "seven enemy types are defined")
-	_eq(GameData.level_count(), 3, "three levels are defined")
+	_eq(GameData.level_count(), 6, "six levels are defined")
 	for id in GameData.tower_ids():
 		var def := GameData.tower(id)
 		_ok(not def.is_empty(), "tower %s resolves" % id)
