@@ -1,0 +1,193 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2
+  GODOT_BIN: /opt/godot/godot
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot
+        run: |
+          set -euo pipefail
+          mkdir -p /opt/godot
+          curl -fsSL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d /opt/godot
+          mv "/opt/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          "$GODOT_BIN" --version
+
+      - name: Import project
+        run: "$GODOT_BIN" --headless --path . --import || true
+
+      # Unit rules, then the real level scene, then the balance regression.
+      - name: Unit tests
+        run: "$GODOT_BIN" --headless --path . res://tests/test_core.tscn
+
+      - name: Level smoke test
+        run: "$GODOT_BIN" --headless --path . res://tests/smoke_level.tscn
+
+      - name: Balance regression (autoplay)
+        run: |
+          set -euo pipefail
+          for d in 0 1 2; do
+            "$GODOT_BIN" --headless --fixed-fps 480 --path . res://tests/autoplay.tscn -- --difficulty="$d"
+          done
+
+  export:
+    name: Export (${{ matrix.preset }})
+    needs: tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - preset: Web
+            out: build/web/index.html
+            artifact: bulwark-web
+          - preset: Linux
+            out: build/linux/bulwark.x86_64
+            artifact: bulwark-linux
+          - preset: Windows
+            out: build/windows/bulwark.exe
+            artifact: bulwark-windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot + export templates
+        run: |
+          set -euo pipefail
+          mkdir -p /opt/godot
+          curl -fsSL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d /opt/godot
+          mv "/opt/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+
+          # Templates must match the editor version exactly, or the export fails.
+          curl -fsSL -o /tmp/templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      - name: Import project
+        run: "$GODOT_BIN" --headless --path . --import || true
+
+      - name: Export
+        run: |
+          mkdir -p "$(dirname "${{ matrix.out }}")"
+          "$GODOT_BIN" --headless --path . --export-release "${{ matrix.preset }}" "${{ matrix.out }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/${{ matrix.preset == 'Web' && 'web' || (matrix.preset == 'Linux' && 'linux' || 'windows') }}
+          if-no-files-found: error
+
+  android:
+    name: Export (Android)
+    needs: tests
+    runs-on: ubuntu-latest
+    # Signing secrets are optional: without them the job is skipped rather than failing,
+    # so forks can still run the test suite and the desktop/web exports.
+    if: ${{ github.event_name != 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Godot + export templates
+        run: |
+          set -euo pipefail
+          mkdir -p /opt/godot
+          curl -fsSL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d /opt/godot
+          mv "/opt/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          curl -fsSL -o /tmp/templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      - name: Point Godot at the Android SDK
+        run: |
+          # Godot stores SDK/keystore paths in editor settings; write them directly for CI.
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.7.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
+          export/android/debug_keystore = "$GITHUB_WORKSPACE/ci/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          export/android/force_system_user = false
+          export/android/shutdown_adb_on_exit = true
+          EOF
+          mkdir -p ci
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
+            -keypass android -keystore ci/debug.keystore -storepass android \
+            -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+
+      - name: Import project
+        run: "$GODOT_BIN" --headless --path . --import || true
+
+      - name: Export APK
+        env:
+          # Release signing (optional). Set these repository secrets to produce a store-ready APK;
+          # without them the export still succeeds using the debug keystore above.
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: ${{ secrets.ANDROID_KEYSTORE_PATH }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          mkdir -p build/android
+          "$GODOT_BIN" --headless --path . --export-release "Android" build/android/bulwark.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: bulwark-android
+          path: build/android/bulwark.apk
+          if-no-files-found: error
+
+  release:
+    name: Attach builds to release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [export, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Zip artifacts
+        run: |
+          cd artifacts
+          for d in */; do zip -qr "${d%/}.zip" "$d"; done
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
+          generate_release_notes: true

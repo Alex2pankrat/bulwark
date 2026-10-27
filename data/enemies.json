@@ -1,0 +1,110 @@
+{
+	"grunt": {
+		"name_key": "enemy.grunt.name",
+		"sprite": "grunt",
+		"hp": 55,
+		"speed": 1.15,
+		"armor": 0,
+		"gold": 7,
+		"lives": 1,
+		"radius": 0.3,
+		"scale": 0.6,
+		"is_air": false,
+		"resist": {}
+	},
+	"runner": {
+		"name_key": "enemy.runner.name",
+		"sprite": "runner",
+		"hp": 38,
+		"speed": 2.3,
+		"armor": 0,
+		"gold": 6,
+		"lives": 1,
+		"radius": 0.26,
+		"scale": 0.48,
+		"is_air": false,
+		"resist": {}
+	},
+	"swarm": {
+		"name_key": "enemy.swarm.name",
+		"sprite": "swarm",
+		"hp": 22,
+		"speed": 1.55,
+		"armor": 0,
+		"gold": 3,
+		"lives": 1,
+		"radius": 0.2,
+		"scale": 0.4,
+		"is_air": false,
+		"resist": {
+			"explosive": -0.15
+		}
+	},
+	"brute": {
+		"name_key": "enemy.brute.name",
+		"sprite": "brute",
+		"hp": 330,
+		"speed": 0.75,
+		"armor": 6,
+		"gold": 20,
+		"lives": 2,
+		"radius": 0.36,
+		"scale": 0.62,
+		"is_air": false,
+		"resist": {
+			"kinetic": 0.15
+		}
+	},
+	"flyer": {
+		"name_key": "enemy.flyer.name",
+		"sprite": "flyer",
+		"hp": 72,
+		"speed": 1.9,
+		"armor": 0,
+		"gold": 10,
+		"lives": 1,
+		"radius": 0.28,
+		"scale": 0.52,
+		"is_air": true,
+		"resist": {
+			"explosive": 0.2
+		}
+	},
+	"medic": {
+		"name_key": "enemy.medic.name",
+		"sprite": "medic",
+		"hp": 150,
+		"speed": 1.0,
+		"armor": 2,
+		"gold": 18,
+		"lives": 1,
+		"radius": 0.3,
+		"scale": 0.62,
+		"is_air": false,
+		"heal": {
+			"radius": 1.8,
+			"rate": 0.06
+		},
+		"resist": {}
+	},
+	"boss": {
+		"name_key": "enemy.boss.name",
+		"sprite": "boss",
+		"hp": 2000,
+		"speed": 0.55,
+		"armor": 10,
+		"gold": 160,
+		"lives": 6,
+		"radius": 0.5,
+		"scale": 0.88,
+		"is_air": false,
+		"immune_slow": true,
+		"split": {
+			"enemy": "swarm",
+			"count": 5
+		},
+		"resist": {
+			"explosive": 0.15
+		}
+	}
+}

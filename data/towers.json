@@ -1,0 +1,222 @@
+{
+	"pulse": {
+		"name_key": "tower.pulse.name",
+		"desc_key": "tower.pulse.desc",
+		"sprite": "pulse",
+		"cost": 55,
+		"kind": "projectile",
+		"damage_type": "kinetic",
+		"element": "energy",
+		"rotates": true,
+		"targets_air": true,
+		"targets_ground": true,
+		"range": 2.5,
+		"damage": 9,
+		"fire_rate": 2.4,
+		"projectile_speed": 15.0,
+		"levels": {
+			"damage": [1.0, 1.55, 2.35],
+			"rate": [1.0, 1.08, 1.18],
+			"range": [1.0, 1.06, 1.12],
+			"upgrade_cost": [45, 80]
+		},
+		"modules": {
+			"a": {
+				"name_key": "tower.pulse.module_a.name",
+				"desc_key": "tower.pulse.module_a.desc",
+				"cost": 90,
+				"mods": {"rate_mult": 1.6, "damage_mult": 0.72}
+			},
+			"b": {
+				"name_key": "tower.pulse.module_b.name",
+				"desc_key": "tower.pulse.module_b.desc",
+				"cost": 90,
+				"mods": {"damage_mult": 1.45, "pierce_add": 5}
+			}
+		}
+	},
+	"cannon": {
+		"name_key": "tower.cannon.name",
+		"desc_key": "tower.cannon.desc",
+		"sprite": "cannon",
+		"cost": 95,
+		"kind": "projectile",
+		"damage_type": "explosive",
+		"element": "explosive",
+		"rotates": true,
+		"targets_air": false,
+		"targets_ground": true,
+		"range": 2.6,
+		"damage": 34,
+		"fire_rate": 0.75,
+		"projectile_speed": 9.0,
+		"splash": 0.85,
+		"levels": {
+			"damage": [1.0, 1.6, 2.4],
+			"rate": [1.0, 1.06, 1.14],
+			"range": [1.0, 1.05, 1.1],
+			"upgrade_cost": [80, 130]
+		},
+		"modules": {
+			"a": {
+				"name_key": "tower.cannon.module_a.name",
+				"desc_key": "tower.cannon.module_a.desc",
+				"cost": 120,
+				"mods": {"splash_mult": 1.8, "rate_mult": 0.85}
+			},
+			"b": {
+				"name_key": "tower.cannon.module_b.name",
+				"desc_key": "tower.cannon.module_b.desc",
+				"cost": 120,
+				"mods": {"damage_mult": 1.5, "pierce_add": 8}
+			}
+		}
+	},
+	"frost": {
+		"name_key": "tower.frost.name",
+		"desc_key": "tower.frost.desc",
+		"sprite": "frost",
+		"cost": 80,
+		"kind": "projectile",
+		"damage_type": "frost",
+		"element": "frost",
+		"rotates": false,
+		"targets_air": true,
+		"targets_ground": true,
+		"range": 2.3,
+		"damage": 6,
+		"fire_rate": 1.1,
+		"projectile_speed": 16.0,
+		"splash": 1.3,
+		"slow": {"factor": 0.45, "duration": 1.6},
+		"levels": {
+			"damage": [1.0, 1.4, 1.9],
+			"rate": [1.0, 1.1, 1.2],
+			"range": [1.0, 1.06, 1.12],
+			"upgrade_cost": [65, 105]
+		},
+		"modules": {
+			"a": {
+				"name_key": "tower.frost.module_a.name",
+				"desc_key": "tower.frost.module_a.desc",
+				"cost": 100,
+				"mods": {"slow_mult": 1.5, "splash_mult": 1.25}
+			},
+			"b": {
+				"name_key": "tower.frost.module_b.name",
+				"desc_key": "tower.frost.module_b.desc",
+				"cost": 100,
+				"mods": {"damage_mult": 4.0, "slow_mult": 0.6}
+			}
+		}
+	},
+	"arc": {
+		"name_key": "tower.arc.name",
+		"desc_key": "tower.arc.desc",
+		"sprite": "arc",
+		"cost": 110,
+		"kind": "beam",
+		"damage_type": "energy",
+		"element": "arc",
+		"rotates": true,
+		"targets_air": true,
+		"targets_ground": true,
+		"range": 2.4,
+		"damage": 16,
+		"fire_rate": 1.3,
+		"chain": 2,
+		"levels": {
+			"damage": [1.0, 1.6, 2.5],
+			"rate": [1.0, 1.08, 1.16],
+			"range": [1.0, 1.05, 1.1],
+			"upgrade_cost": [90, 145]
+		},
+		"modules": {
+			"a": {
+				"name_key": "tower.arc.module_a.name",
+				"desc_key": "tower.arc.module_a.desc",
+				"cost": 130,
+				"mods": {"chain_add": 2}
+			},
+			"b": {
+				"name_key": "tower.arc.module_b.name",
+				"desc_key": "tower.arc.module_b.desc",
+				"cost": 130,
+				"mods": {"damage_mult": 1.7, "range_mult": 0.85}
+			}
+		}
+	},
+	"rail": {
+		"name_key": "tower.rail.name",
+		"desc_key": "tower.rail.desc",
+		"sprite": "rail",
+		"cost": 150,
+		"kind": "beam",
+		"damage_type": "energy",
+		"element": "energy",
+		"rotates": true,
+		"targets_air": true,
+		"targets_ground": true,
+		"range": 5.5,
+		"damage": 90,
+		"fire_rate": 0.42,
+		"pierce": 8,
+		"levels": {
+			"damage": [1.0, 1.65, 2.7],
+			"rate": [1.0, 1.1, 1.22],
+			"range": [1.0, 1.08, 1.16],
+			"upgrade_cost": [130, 200]
+		},
+		"modules": {
+			"a": {
+				"name_key": "tower.rail.module_a.name",
+				"desc_key": "tower.rail.module_a.desc",
+				"cost": 180,
+				"mods": {"range_mult": 1.25, "rate_mult": 1.25}
+			},
+			"b": {
+				"name_key": "tower.rail.module_b.name",
+				"desc_key": "tower.rail.module_b.desc",
+				"cost": 180,
+				"mods": {"mark_bonus": 0.25, "damage_mult": 1.1}
+			}
+		}
+	},
+	"beacon": {
+		"name_key": "tower.beacon.name",
+		"desc_key": "tower.beacon.desc",
+		"sprite": "beacon",
+		"cost": 120,
+		"kind": "aura",
+		"damage_type": "none",
+		"element": "heal",
+		"rotates": false,
+		"targets_air": false,
+		"targets_ground": false,
+		"range": 0.0,
+		"damage": 0,
+		"fire_rate": 0,
+		"aura": {"rate_mult": 0.25, "range": 2.8, "damage_mult": 0.0},
+		"levels": {
+			"damage": [1.0, 1.0, 1.0],
+			"rate": [1.0, 1.0, 1.0],
+			"range": [1.0, 1.06, 1.14],
+			"aura": [1.0, 1.5, 2.0],
+			"upgrade_cost": [100, 160]
+		},
+		"modules": {
+			"a": {
+				"name_key": "tower.beacon.module_a.name",
+				"desc_key": "tower.beacon.module_a.desc",
+				"cost": 140,
+				"mods": {"aura_rate_mult": 1.4, "aura_range_mult": 1.15}
+			},
+			"b": {
+				"name_key": "tower.beacon.module_b.name",
+				"desc_key": "tower.beacon.module_b.desc",
+				"cost": 140,
+				"mods": {"aura_damage_mult": 0.2}
+			}
+		}
+	}
+}

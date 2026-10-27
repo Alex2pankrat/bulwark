@@ -1,0 +1,23 @@
+# Godot
+.godot/
+*.translation
+export_credentials.cfg
+
+# Build outputs — produced by tools/build.sh or the CI workflow, never committed
+build/
+release/
+*.apk
+*.aab
+*.pck
+*.zip
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Python tooling caches (tools/*.py)
+__pycache__/
+*.pyc
