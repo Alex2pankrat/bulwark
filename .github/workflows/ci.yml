@@ -101,8 +101,6 @@ jobs:
     name: Export (Android)
     needs: tests
     runs-on: ubuntu-latest
-    # Signing secrets are optional: without them the job is skipped rather than failing,
-    # so forks can still run the test suite and the desktop/web exports.
     if: ${{ github.event_name != 'pull_request' }}
     steps:
       - uses: actions/checkout@v4
@@ -132,7 +130,6 @@ jobs:
 
       - name: Point Godot at the Android SDK
         run: |
-          # Godot stores SDK/keystore paths in editor settings; write them directly for CI.
           mkdir -p ~/.config/godot
           cat > ~/.config/godot/editor_settings-4.7.tres <<EOF
           [gd_resource type="EditorSettings" format=3]
@@ -140,25 +137,25 @@ jobs:
           [resource]
           export/android/java_sdk_path = "$JAVA_HOME"
           export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
-          export/android/debug_keystore = "$GITHUB_WORKSPACE/ci/debug.keystore"
-          export/android/debug_keystore_user = "androiddebugkey"
-          export/android/debug_keystore_pass = "android"
           export/android/force_system_user = false
           export/android/shutdown_adb_on_exit = true
           EOF
+
+      - name: Prepare release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
           mkdir -p ci
-          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
-            -keypass android -keystore ci/debug.keystore -storepass android \
-            -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > ci/bulwark-release.keystore
+          ls -lh ci/bulwark-release.keystore
 
       - name: Import project
         run: "$GODOT_BIN" --headless --path . --import || true
 
       - name: Export APK
         env:
-          # Release signing (optional). Set these repository secrets to produce a store-ready APK;
-          # without them the export still succeeds using the debug keystore above.
-          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: ${{ secrets.ANDROID_KEYSTORE_PATH }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: ${{ github.workspace }}/ci/bulwark-release.keystore
           GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
           GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
@@ -183,11 +180,19 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
-      - name: Zip artifacts
+
+      - name: Prepare release assets
         run: |
-          cd artifacts
-          for d in */; do zip -qr "${d%/}.zip" "$d"; done
+          set -euo pipefail
+          mkdir -p release_files
+          VERSION="${GITHUB_REF_NAME}"
+          cp artifacts/bulwark-windows/bulwark.exe "release_files/bulwark-${VERSION}-windows-x86_64.exe"
+          cp artifacts/bulwark-linux/bulwark.x86_64 "release_files/bulwark-${VERSION}-linux-x86_64"
+          chmod +x "release_files/bulwark-${VERSION}-linux-x86_64"
+          cp artifacts/bulwark-android/bulwark.apk "release_files/bulwark-${VERSION}-android.apk"
+          (cd artifacts/bulwark-web && zip -qr "../../release_files/bulwark-${VERSION}-web.zip" .)
+
       - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*.zip
+          files: release_files/*
           generate_release_notes: true
