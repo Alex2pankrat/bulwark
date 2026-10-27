@@ -81,10 +81,17 @@ func _shot_credits() -> void:
 	await _capture("04_credits")
 
 
-## Renders the game scene at a phone-shaped viewport to check the HUD at other aspect ratios.
+## Renders the game scene at a 19.5:9 phone viewport (landscape — the orientation the game
+## ships with) to check that the HUD survives a very wide aspect ratio.
 func _shot_mobile() -> void:
-	DisplayServer.window_set_size(Vector2i(720, 1560))
-	await _frames(4)
+	# Godot ignores window_set_size for the *content* viewport under `keep` aspect, so this
+	# shot is taken by running the tool with a wide --resolution (see docs/ARCHITECTURE.md).
+	var viewport_size := get_viewport().get_visible_rect().size
+	if viewport_size.x / viewport_size.y < 1.9:
+		DisplayServer.window_set_size(Vector2i(1170, 540))
+		await _frames(6)
+		viewport_size = get_viewport().get_visible_rect().size
+	print("   phone shot viewport: %s" % viewport_size)
 	App.pending_level = _level
 	var game := await _open("res://scenes/game.tscn") as GameScreen
 	game.place_tower("pulse", Vector2i(2, 1))
@@ -93,7 +100,7 @@ func _shot_mobile() -> void:
 	await get_tree().create_timer(3.0).timeout
 	game.select_tower_at(Vector2i(2, 1))
 	await _frames(3)
-	await _capture("08_game_portrait")
+	await _capture("08_phone_wide")
 	DisplayServer.window_set_size(Vector2i(1280, 720))
 	await _frames(2)
 

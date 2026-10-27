@@ -27,6 +27,9 @@ if [[ "$TARGET" == all || "$TARGET" == web ]]; then
   build Web build/web/index.html
   rm -rf release/web && mkdir -p release/web
   cp build/web/* release/web/
+  # The exported shell paints the page black; under `keep` aspect that shows as seams around
+  # the letterboxed game. Match it to the game's own background so a phone screen looks whole.
+  sed -i 's/background-color: black;/background-color: #14181b;/' release/web/index.html
   # Pre-compress the big files so the local preview and any static host ship ~10 MB
   # instead of 40 MB. tools/serve_web.py serves the .gz siblings with Content-Encoding.
   python3 tools/serve_web.py --dir release/web --compress-only

@@ -121,8 +121,9 @@ unparseable falls back to defaults and re-saves. Settings live in the same file,
 
 - **Compatibility (GLES3) renderer** on every target: one shader/feature set to verify, and it
   is the renderer that behaves best on cheap Android GPUs. No 2D MSAA (mobile), no post FX.
-- Reference resolution **1280×720**, stretch `canvas_items` + `keep`, so the board keeps its
-  aspect at any window size, phone aspect ratio or in portrait.
+- Reference resolution **1280×720**, stretch `canvas_items` + `keep`: the board keeps its aspect
+  at any window size, ultrawide desktop or 19.5:9 phone, and nothing is ever squashed. The
+  window is `sensor landscape`, so a phone can be held either way up.
 - Tower Defense tiles are 64 px but the board cell is 64 px at reference scale, so sprites are
   never upscaled.
 - Audio: three buses (`Master → Music`, `Master → SFX`) with an `AudioStreamPlayer` pool — no
@@ -139,8 +140,8 @@ unparseable falls back to defaults and re-saves. Settings live in the same file,
 | `tests/autoplay.tscn` | Balance: a scripted competent player must clear all three missions on Normal, and survive to the endgame on Hard. Runs at a fixed timestep so numbers are comparable across commits |
 
 The screenshots in `docs/screenshots/` are produced by `tools/screenshot.tscn` under
-`xvfb-run` at 1280×720, 1600×900 and 540×1170 so layout regressions are visible, not argued
-about.
+`xvfb-run` at 1280×720 and 1600×900, plus a real 844×390 phone-landscape capture from the web
+build, so layout regressions are visible rather than argued about.
 
 ## Extension points
 

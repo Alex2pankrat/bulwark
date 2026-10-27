@@ -12,7 +12,7 @@ missions. One small, readable codebase — built to be forked.
   <a href="docs/screenshots/menu.jpg"><img src="docs/screenshots/menu.jpg" width="196" alt="Main menu"></a>
   <a href="docs/screenshots/missions.jpg"><img src="docs/screenshots/missions.jpg" width="196" alt="Mission select"></a>
   <a href="docs/screenshots/settings.jpg"><img src="docs/screenshots/settings.jpg" width="196" alt="Settings"></a>
-  <a href="docs/screenshots/portrait.jpg"><img src="docs/screenshots/portrait.jpg" width="120" alt="Phone layout"></a>
+  <a href="docs/screenshots/phone.jpg"><img src="docs/screenshots/phone.jpg" width="196" alt="Phone layout"></a>
 </p>
 
 ---
@@ -64,7 +64,8 @@ Waves are data-driven and telegraphed: the next composition is always visible be
 
 **Comfort and accessibility**
 
-- Landscape-first layout that also adapts to portrait and ultrawide (aspect `keep`).
+- Landscape-first (19.5:9 to 16:9), letterboxed rather than distorted, and the letterbox
+  is the same colour as the game so a wide phone looks whole.
 - Full touch, mouse and keyboard control; every screen is focus-navigable.
 - Volume buses, **screen-shake slider (can be 0)**, **reduce motion**, grid overlay,
   damage-number toggle, high-contrast markers, English **and** Russian.
