@@ -148,7 +148,6 @@ jobs:
           set -euo pipefail
           mkdir -p ci
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > ci/bulwark-release.keystore
-          ls -lh ci/bulwark-release.keystore
 
       - name: Import project
         run: "$GODOT_BIN" --headless --path . --import || true
