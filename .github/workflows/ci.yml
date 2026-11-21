@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
   workflow_dispatch:
 
@@ -29,13 +30,13 @@ jobs:
           "$GODOT_BIN" --version
 
       - name: Import project
-        run: "$GODOT_BIN" --headless --path . --import || true
+        run: '"$GODOT_BIN" --headless --path . --import || true'
 
       - name: Unit tests
-        run: "$GODOT_BIN" --headless --path . res://tests/test_core.tscn
+        run: '"$GODOT_BIN" --headless --path . res://tests/test_core.tscn'
 
       - name: Level smoke test
-        run: "$GODOT_BIN" --headless --path . res://tests/smoke_level.tscn
+        run: '"$GODOT_BIN" --headless --path . res://tests/smoke_level.tscn'
 
       - name: Balance regression (autoplay)
         run: |
@@ -80,7 +81,7 @@ jobs:
           mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
       - name: Import project
-        run: "$GODOT_BIN" --headless --path . --import || true
+        run: '"$GODOT_BIN" --headless --path . --import || true'
 
       - name: Export
         run: |
@@ -146,7 +147,7 @@ jobs:
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > ci/bulwark-release.keystore
 
       - name: Import project
-        run: "$GODOT_BIN" --headless --path . --import || true
+        run: '"$GODOT_BIN" --headless --path . --import || true'
 
       - name: Export APK
         env:
