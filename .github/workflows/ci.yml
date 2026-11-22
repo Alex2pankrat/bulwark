@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
   workflow_dispatch:
 
@@ -21,21 +22,35 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /opt/godot
-          curl -fsSL -o /tmp/godot.zip \
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot.zip \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           unzip -q /tmp/godot.zip -d /opt/godot
           mv "/opt/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_BIN"
           chmod +x "$GODOT_BIN"
           "$GODOT_BIN" --version
+          # The export templates are fetched here, once, and shared with every export job
+          # through an artifact: simultaneous anonymous downloads of the same release
+          # assets otherwise trip GitHub's per-IP asset budget.
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+
+      - name: Share engine downloads with export jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-downloads
+          path: |
+            /tmp/godot.zip
+            /tmp/templates.tpz
+          if-no-files-found: error
 
       - name: Import project
-        run: "$GODOT_BIN" --headless --path . --import || true
+        run: '"$GODOT_BIN" --headless --path . --import || true'
 
       - name: Unit tests
-        run: "$GODOT_BIN" --headless --path . res://tests/test_core.tscn
+        run: '"$GODOT_BIN" --headless --path . res://tests/test_core.tscn'
 
       - name: Level smoke test
-        run: "$GODOT_BIN" --headless --path . res://tests/smoke_level.tscn
+        run: '"$GODOT_BIN" --headless --path . res://tests/smoke_level.tscn'
 
       - name: Balance regression (autoplay)
         run: |
@@ -65,22 +80,24 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Godot + export templates
+        uses: actions/download-artifact@v4
+        with:
+          name: godot-downloads
+          path: /opt/godot-dl
+
+      - name: Unpack Godot and templates
         run: |
           set -euo pipefail
           mkdir -p /opt/godot
-          curl -fsSL -o /tmp/godot.zip \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q /tmp/godot.zip -d /opt/godot
+          unzip -q /opt/godot-dl/godot.zip -d /opt/godot
           mv "/opt/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_BIN"
           chmod +x "$GODOT_BIN"
-          curl -fsSL -o /tmp/templates.tpz \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           mkdir -p ~/.local/share/godot/export_templates
-          unzip -q /tmp/templates.tpz -d /tmp/templates
+          unzip -q /opt/godot-dl/templates.tpz -d /tmp/templates
           mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
       - name: Import project
-        run: "$GODOT_BIN" --headless --path . --import || true
+        run: '"$GODOT_BIN" --headless --path . --import || true'
 
       - name: Export
         run: |
@@ -109,26 +126,76 @@ jobs:
           java-version: '17'
 
       - name: Install Android SDK
-        uses: android-actions/setup-android@v3
+        run: |
+          set -euo pipefail
+          # Reuse the SDK preinstalled on GitHub-hosted runners when present; otherwise set up
+          # command-line tools ourselves. Godot 4.7's export template builds against
+          # compileSdk 36 / build-tools 36.1.0 / NDK 29.0.14206865 (see
+          # platform/android/java/app/config.gradle in the engine sources).
+          if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
+            for candidate in "${ANDROID_HOME:-}" /usr/local/lib/android/sdk "$HOME/Android/Sdk"; do
+              if [ -n "$candidate" ] && [ -d "$candidate" ]; then
+                export ANDROID_SDK_ROOT="$candidate"
+                break
+              fi
+            done
+          fi
+          if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
+            export ANDROID_SDK_ROOT="$HOME/android-sdk"
+            curl -fsSL -o /tmp/cmdtools.zip \
+              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+            rm -rf /tmp/cmdtools
+            unzip -q /tmp/cmdtools.zip -d /tmp/cmdtools
+            mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+            mv /tmp/cmdtools/cmdline-tools "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          fi
+          export ANDROID_HOME="$ANDROID_SDK_ROOT"
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            # `-print -quit` makes find exit on its own; a `find | head` pipeline would
+            # trip `pipefail` via SIGPIPE.
+            SDKMANAGER="$(find "$ANDROID_SDK_ROOT" -name sdkmanager -type f -print -quit)"
+          fi
+          if [ -z "$SDKMANAGER" ]; then
+            # SDK root exists but carries no sdkmanager: fetch command-line tools into it.
+            curl -fsSL -o /tmp/cmdtools.zip \
+              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+            rm -rf /tmp/cmdtools
+            unzip -q /tmp/cmdtools.zip -d /tmp/cmdtools
+            mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+            mv /tmp/cmdtools/cmdline-tools "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+            SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          test -n "$SDKMANAGER"
+          "$SDKMANAGER" --version
+          # `yes` gets SIGPIPE when sdkmanager exits; swallow it under pipefail.
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
 
       - name: Install Godot + export templates
+        uses: actions/download-artifact@v4
+        with:
+          name: godot-downloads
+          path: /opt/godot-dl
+
+      - name: Unpack Godot and templates
         run: |
           set -euo pipefail
           mkdir -p /opt/godot
-          curl -fsSL -o /tmp/godot.zip \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q /tmp/godot.zip -d /opt/godot
+          unzip -q /opt/godot-dl/godot.zip -d /opt/godot
           mv "/opt/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_BIN"
           chmod +x "$GODOT_BIN"
-          curl -fsSL -o /tmp/templates.tpz \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          unzip -q /tmp/templates.tpz -d /tmp/templates
+          mkdir -p ~/.local/share/godot/export_templates
+          unzip -q /opt/godot-dl/templates.tpz -d /tmp/templates
           mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
       - name: Point Godot at the Android SDK
         run: |
           mkdir -p ~/.config/godot
-          cat > ~/.config/godot/editor_settings-4.7.tres <<'EOF'
+          # Unquoted EOF: $JAVA_HOME and $ANDROID_SDK_ROOT must expand into the settings file.
+          cat > ~/.config/godot/editor_settings-4.7.tres <<EOF
           [gd_resource type="EditorSettings" format=3]
 
           [resource]
@@ -137,6 +204,7 @@ jobs:
           export/android/force_system_user = false
           export/android/shutdown_adb_on_exit = true
           EOF
+          grep -n "sdk_path" ~/.config/godot/editor_settings-4.7.tres
 
       - name: Prepare release keystore
         env:
@@ -146,7 +214,7 @@ jobs:
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > ci/bulwark-release.keystore
 
       - name: Import project
-        run: "$GODOT_BIN" --headless --path . --import || true
+        run: '"$GODOT_BIN" --headless --path . --import || true'
 
       - name: Export APK
         env:

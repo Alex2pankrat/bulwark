@@ -1034,5 +1034,6 @@ func _notification(what: int) -> void:
 		# The board is scaled into the available area; without this a resized window keeps the
 		# old framing. Everything under `_board_root` uses local coordinates, so re-scaling it
 		# does not disturb towers, enemies, projectiles or effects.
+		# No `super._notification()` call: the parent (Control) defines no `_notification` in
+		# GDScript, and calling it is a parse error on Godot 4.7.
 		_layout()
-	super._notification(what)
