@@ -136,11 +136,24 @@ jobs:
           export ANDROID_HOME="$ANDROID_SDK_ROOT"
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           if [ ! -x "$SDKMANAGER" ]; then
-            SDKMANAGER="$(find "$ANDROID_SDK_ROOT" -name sdkmanager -type f | head -n 1)"
+            # `-print -quit` makes find exit on its own; a `find | head` pipeline would
+            # trip `pipefail` via SIGPIPE.
+            SDKMANAGER="$(find "$ANDROID_SDK_ROOT" -name sdkmanager -type f -print -quit)"
+          fi
+          if [ -z "$SDKMANAGER" ]; then
+            # SDK root exists but carries no sdkmanager: fetch command-line tools into it.
+            curl -fsSL -o /tmp/cmdtools.zip \
+              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+            rm -rf /tmp/cmdtools
+            unzip -q /tmp/cmdtools.zip -d /tmp/cmdtools
+            mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+            mv /tmp/cmdtools/cmdline-tools "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+            SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           fi
           test -n "$SDKMANAGER"
           "$SDKMANAGER" --version
-          yes | "$SDKMANAGER" --licenses > /dev/null
+          # `yes` gets SIGPIPE when sdkmanager exits; swallow it under pipefail.
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
           "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
