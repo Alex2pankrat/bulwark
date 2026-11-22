@@ -194,7 +194,8 @@ jobs:
       - name: Point Godot at the Android SDK
         run: |
           mkdir -p ~/.config/godot
-          cat > ~/.config/godot/editor_settings-4.7.tres <<'EOF'
+          # Unquoted EOF: $JAVA_HOME and $ANDROID_SDK_ROOT must expand into the settings file.
+          cat > ~/.config/godot/editor_settings-4.7.tres <<EOF
           [gd_resource type="EditorSettings" format=3]
 
           [resource]
@@ -203,6 +204,7 @@ jobs:
           export/android/force_system_user = false
           export/android/shutdown_adb_on_exit = true
           EOF
+          grep -n "sdk_path" ~/.config/godot/editor_settings-4.7.tres
 
       - name: Prepare release keystore
         env:
