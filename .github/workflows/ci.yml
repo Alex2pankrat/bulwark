@@ -158,17 +158,28 @@ jobs:
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
 
-      - name: Install Godot + export templates
+      - name: Download Godot
         run: |
           set -euo pipefail
           mkdir -p /opt/godot
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot.zip \
+          # Authenticated downloads get a much higher asset-download budget than anonymous
+          # ones; the export jobs otherwise race each other for the same release assets.
+          curl -fsSL --retry 6 --retry-delay 10 --retry-max-time 300 --retry-all-errors \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -o /tmp/godot.zip \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           unzip -q /tmp/godot.zip -d /opt/godot
           mv "/opt/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_BIN"
           chmod +x "$GODOT_BIN"
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/templates.tpz \
+
+      - name: Download export templates
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 6 --retry-delay 10 --retry-max-time 300 --retry-all-errors \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -o /tmp/templates.tpz \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates
           unzip -q /tmp/templates.tpz -d /tmp/templates
           mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
