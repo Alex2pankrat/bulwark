@@ -10,7 +10,6 @@ signal died(enemy: Enemy)
 signal leaked(enemy: Enemy)
 
 const SPRITE_DIR := "res://assets/sprites/enemies/"
-const SPRITE_ANGLE_OFFSET := PI * 0.5
 
 var def: Dictionary = {}
 var enemy_id: String = ""
@@ -72,6 +71,10 @@ func setup(p_def: Dictionary, p_hp: float, p_speed: float, p_armor: float,
 	var path_sprite := SPRITE_DIR + String(p_def.get("sprite", "grunt")) + ".png"
 	if ResourceLoader.exists(path_sprite):
 		_sprite.texture = load(path_sprite)
+	# Centre the sprite on the unit so rotating it spins around its own centre (the pivot is
+	# the node origin), not around a corner of the texture.
+	if _sprite.texture != null:
+		_sprite.offset = -_sprite.texture.get_size() * 0.5
 	_sprite.scale = Vector2(scale_factor, scale_factor)
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	add_child(_sprite)
@@ -141,10 +144,13 @@ func _update_transform() -> void:
 		position += Vector2(0, -6)
 	else:
 		position = base + _lane_offset
-	# Every sprite is drawn facing "up", so a quarter turn aligns it with the direction of
-	# travel. Ground units used to keep rotation 0 and always faced the top of the screen; they
-	# now turn at every bend like the fliers already did.
-	rotation = dir.angle() + SPRITE_ANGLE_OFFSET
+	# Sprites are drawn facing "right", so aiming the sprite along the direction of travel
+	# needs no extra offset. Only the sprite child is rotated: the enemy node itself stays
+	# unrotated so the health bar drawn above it stays horizontal (top of the screen), and
+	# ground units turn at every bend exactly like the fliers.
+	rotation = 0.0
+	if _sprite != null:
+		_sprite.rotation = dir.angle()
 
 
 # --- Combat -------------------------------------------------------------------------------------

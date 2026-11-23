@@ -5,6 +5,7 @@ extends Screen
 func _build() -> void:
 	Audio.play_music("calm")
 	add_child(MenuBackdrop.new())
+	var compact := UIKit.is_compact()
 
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -16,7 +17,7 @@ func _build() -> void:
 	center.add_child(column)
 
 	var title := UIKit.label(Loc.t("app.title"), "DisplayLabel")
-	title.add_theme_font_size_override("font_size", 64)
+	title.add_theme_font_size_override("font_size", 64 if not compact else 72)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 
@@ -27,8 +28,8 @@ func _build() -> void:
 	column.add_child(UIKit.spacer(false, true))
 
 	var play := UIKit.button(_play_label(), "PrimaryButton", _on_play)
-	play.custom_minimum_size.y = 54
-	play.add_theme_font_size_override("font_size", 19)
+	play.custom_minimum_size.y = 54 if not compact else 66
+	play.add_theme_font_size_override("font_size", 19 if not compact else 23)
 	column.add_child(play)
 
 	column.add_child(UIKit.button(Loc.t("menu.levels"), "", func() -> void:

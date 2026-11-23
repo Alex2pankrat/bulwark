@@ -22,6 +22,7 @@ signal module_pressed(module_id: String)
 signal panel_closed()
 
 const CHIP_HEIGHT := 40.0
+const CHIP_HEIGHT_COMPACT := 52.0
 
 var _lives_label: Label
 var _gold_label: Label
@@ -46,11 +47,13 @@ var _ability_buttons: Dictionary = {}
 var _bottom_slot: HBoxContainer
 var _selected_tower_id := ""
 var _wave_total: int = 1
+var _compact := false
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_compact = UIKit.is_compact()
 	_build()
 
 
@@ -79,16 +82,24 @@ func _build_top_bar() -> Control:
 	_wave_label = _chip(row, "wave", Palette.ACCENT)
 	row.add_child(UIKit.spacer(true))
 	_speed_button = UIKit.button("1×", "ChipButton", func() -> void: speed_pressed.emit())
-	_speed_button.custom_minimum_size = Vector2(58, CHIP_HEIGHT)
+	_speed_button.custom_minimum_size = Vector2(58 if not _compact else 70, _chip_height())
 	row.add_child(_speed_button)
 	# Visible only while a tower is armed for placement, so the player has an explicit way out
 	# (a "cancel zone") without tapping the armed build button again.
 	_cancel_button = UIKit.button(Loc.t("common.cancel"), "ChipButton",
 		func() -> void: cancel_pressed.emit())
-	_cancel_button.custom_minimum_size = Vector2(96, CHIP_HEIGHT)
+	_cancel_button.custom_minimum_size = Vector2(96 if not _compact else 116, _chip_height())
 	_cancel_button.visible = false
 	row.add_child(_cancel_button)
-	row.add_child(UIKit.icon_button("pause", Palette.TEXT, func() -> void: pause_pressed.emit(), CHIP_HEIGHT))
+	# On a phone the ability bar moves up here: the bottom strip stays narrow so the board
+	# underneath is as free as possible, and abilities sit with the other always-visible
+	# controls where the right thumb reaches them easily.
+	if _compact:
+		_ability_row = UIKit.hbox(8)
+		_ability_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(_ability_row)
+	row.add_child(UIKit.icon_button("pause", Palette.TEXT, func() -> void: pause_pressed.emit(),
+		_chip_height()))
 	return row
 
 
@@ -107,6 +118,9 @@ func _build_bottom_bar() -> Control:
 	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_status_label = UIKit.label("", "HeadingLabel")
 	_status_hint = UIKit.label("", "TinyLabel")
+	if _compact:
+		_status_label.add_theme_font_size_override("font_size", 22)
+		_status_hint.add_theme_font_size_override("font_size", 14)
 	text_box.add_child(_status_label)
 	text_box.add_child(_status_hint)
 	status_box.add_child(text_box)
@@ -116,7 +130,8 @@ func _build_bottom_bar() -> Control:
 	status_box.add_child(_preview_row)
 	_call_button = UIKit.button(Loc.t("game.call_now"), "PrimaryButton",
 		func() -> void: call_wave_pressed.emit())
-	_call_button.custom_minimum_size = Vector2(196, 42)
+	_call_button.custom_minimum_size = Vector2(196 if not _compact else 240,
+		42 if not _compact else 54)
 	status_box.add_child(_call_button)
 	var status_wrapper := UIKit.hbox(0)
 	status_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -141,12 +156,18 @@ func _build_bottom_bar() -> Control:
 	_tower_panel.closed.connect(func() -> void: panel_closed.emit())
 	_bottom_slot.add_child(_tower_panel)
 
-	_bottom_slot.add_child(UIKit.spacer(true))
-	_ability_row = UIKit.hbox(8)
-	_ability_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bottom_slot.add_child(_ability_row)
+	if not _compact:
+		_bottom_slot.add_child(UIKit.spacer(true))
+		_ability_row = UIKit.hbox(8)
+		_ability_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_bottom_slot.add_child(_ability_row)
 	column.add_child(_bottom_slot)
 	return column
+
+
+## Height of the status chips; larger on compact screens so they stay finger-tappable.
+func _chip_height() -> float:
+	return CHIP_HEIGHT_COMPACT if _compact else CHIP_HEIGHT
 
 
 func _build_toast() -> void:
@@ -172,12 +193,13 @@ func _margin(child: Control, left: int, top: int, right: int, bottom: int) -> Ma
 func _chip(row: HBoxContainer, glyph: String, color: Color) -> Label:
 	var panel := UIKit.panel("HudPanel")
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.custom_minimum_size.y = _chip_height()
 	var box := UIKit.hbox(6)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(box)
-	box.add_child(Glyph.of(glyph, 17, color))
+	box.add_child(Glyph.of(glyph, 17 if not _compact else 21, color))
 	var value := UIKit.label("0", "NumberLabel")
-	value.add_theme_font_size_override("font_size", 18)
+	value.add_theme_font_size_override("font_size", 18 if not _compact else 22)
 	box.add_child(value)
 	row.add_child(panel)
 	return value

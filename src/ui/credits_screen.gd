@@ -13,6 +13,7 @@ const ENTRIES := [
 
 func _build() -> void:
 	Audio.play_music("calm")
+	var compact := UIKit.is_compact()
 
 	var column := UIKit.vbox(14)
 	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -21,7 +22,7 @@ func _build() -> void:
 	var header := UIKit.hbox(12)
 	header.add_child(UIKit.icon_button("back", Palette.TEXT, func() -> void:
 		Audio.play_sfx("ui_back", -6.0)
-		App.pop_scene(), 44))
+		App.pop_scene(), 44 if not compact else 52))
 	header.add_child(UIKit.label(Loc.t("credits.title"), "TitleLabel"))
 	column.add_child(header)
 
@@ -37,11 +38,20 @@ func _build() -> void:
 	for entry in ENTRIES:
 		var card := UIKit.panel("InsetPanel")
 		var inner := UIKit.card_body(card, 2)
-		inner.add_child(UIKit.label(Loc.t(String(entry["label"])), "TinyLabel"))
-		inner.add_child(UIKit.wrapped(String(entry["value"]), "SmallLabel", 720))
+		var label := UIKit.label(Loc.t(String(entry["label"])), "TinyLabel")
+		if compact:
+			label.add_theme_font_size_override("font_size", 14)
+		inner.add_child(label)
+		var value := UIKit.wrapped(String(entry["value"]), "SmallLabel", 720)
+		if compact:
+			value.add_theme_font_size_override("font_size", 16)
+		inner.add_child(value)
 		body.add_child(card)
 
-	body.add_child(UIKit.label(Loc.t("credits.made_with"), "TinyLabel"))
+	var made := UIKit.label(Loc.t("credits.made_with"), "TinyLabel")
+	if compact:
+		made.add_theme_font_size_override("font_size", 14)
+	body.add_child(made)
 
 
 func on_back() -> void:

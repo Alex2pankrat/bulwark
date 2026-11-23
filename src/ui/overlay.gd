@@ -13,6 +13,7 @@ var _buttons: HBoxContainer
 var _title: Label
 var _subtitle: Label
 var _stars: HBoxContainer
+var _compact := false
 
 
 static func open(parent: Node, title: String, subtitle: String = "") -> Overlay:
@@ -26,6 +27,7 @@ func build(title: String, subtitle: String) -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	theme = ThemeFactory.get_theme()
+	_compact = UIKit.is_compact()
 
 	var dim := ColorRect.new()
 	dim.color = Color(0.03, 0.04, 0.05, 0.72)
@@ -39,16 +41,20 @@ func build(title: String, subtitle: String) -> void:
 	add_child(center)
 
 	_card = UIKit.panel("OverlayPanel")
-	_card.custom_minimum_size = Vector2(420, 0)
+	_card.custom_minimum_size = Vector2(420 if not _compact else 580, 0)
 	center.add_child(_card)
 	var column := UIKit.card_body(_card, 14)
-	column.custom_minimum_size.x = 380
+	column.custom_minimum_size.x = 380 if not _compact else 520
 
 	_title = UIKit.label(title, "TitleLabel")
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if _compact:
+		_title.add_theme_font_size_override("font_size", 30)
 	column.add_child(_title)
-	_subtitle = UIKit.wrapped(subtitle, "SmallLabel", 360)
+	_subtitle = UIKit.wrapped(subtitle, "SmallLabel", 360 if not _compact else 500)
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if _compact:
+		_subtitle.add_theme_font_size_override("font_size", 16)
 	column.add_child(_subtitle)
 
 	_stars = UIKit.hbox(6)
@@ -65,7 +71,7 @@ func build(title: String, subtitle: String) -> void:
 	# Animate in unless the player asked for less motion.
 	if not bool(App.get_setting("reduce_motion")):
 		_card.scale = Vector2(0.94, 0.94)
-		_card.pivot_offset = Vector2(190, 0)
+		_card.pivot_offset = Vector2(190 if not _compact else 260, 0)
 		var tween := create_tween()
 		tween.tween_property(_card, "scale", Vector2.ONE, 0.16).set_ease(Tween.EASE_OUT)
 	modulate = Color(1, 1, 1, 0)
@@ -80,7 +86,10 @@ func add_button(text: String, variation: String, callback: Callable) -> Button:
 	var button := UIKit.button(text, variation, func() -> void:
 		Audio.play_sfx("ui_click", -4.0)
 		callback.call())
-	button.custom_minimum_size = Vector2(140, 46)
+	button.custom_minimum_size = Vector2(140 if not _compact else 180,
+		46 if not _compact else 58)
+	if _compact:
+		button.add_theme_font_size_override("font_size", 17)
 	_buttons.add_child(button)
 	return button
 
@@ -88,10 +97,16 @@ func add_button(text: String, variation: String, callback: Callable) -> Button:
 func add_row(icon_name: String, label_text: String, value_text: String,
 		color: Color = Palette.TEXT) -> void:
 	var row := UIKit.hbox(8)
-	row.add_child(Glyph.of(icon_name, 16, color))
-	row.add_child(UIKit.label(label_text, "SmallLabel"))
+	row.add_child(Glyph.of(icon_name, 16 if not _compact else 20, color))
+	var label := UIKit.label(label_text, "SmallLabel")
+	if _compact:
+		label.add_theme_font_size_override("font_size", 16)
+	row.add_child(label)
 	row.add_child(UIKit.spacer(true))
-	row.add_child(UIKit.label(value_text, "HeadingLabel"))
+	var value := UIKit.label(value_text, "HeadingLabel")
+	if _compact:
+		value.add_theme_font_size_override("font_size", 20)
+	row.add_child(value)
 	_body.add_child(row)
 
 
@@ -101,7 +116,8 @@ func show_stars(count: int, maximum: int = 3) -> void:
 		child.queue_free()
 	for i in range(maximum):
 		var filled := i < count
-		_stars.add_child(Glyph.of("star", 30, Palette.GOLD if filled else Palette.TEXT_DIM))
+		_stars.add_child(Glyph.of("star", 30 if not _compact else 40,
+			Palette.GOLD if filled else Palette.TEXT_DIM))
 
 
 func focus_default() -> void:

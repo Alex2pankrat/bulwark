@@ -24,10 +24,12 @@ var _target_button: Button
 var _module_row: HBoxContainer
 var _module_title: Label
 var _tower: Tower
+var _compact := false
 
 
 func _ready() -> void:
 	theme_type_variation = "HudPanel"
+	_compact = UIKit.is_compact()
 	_build()
 
 
@@ -42,7 +44,7 @@ func _build() -> void:
 	root.add_child(header)
 
 	_sprite = TextureRect.new()
-	_sprite.custom_minimum_size = Vector2(30, 30)
+	_sprite.custom_minimum_size = Vector2(30, 30) if not _compact else Vector2(42, 42)
 	_sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -95,6 +97,12 @@ func _build() -> void:
 	_module_row = HBoxContainer.new()
 	_module_row.add_theme_constant_override("separation", 8)
 	root.add_child(_module_row)
+	if _compact:
+		_name.add_theme_font_size_override("font_size", 22)
+		_stats.add_theme_font_size_override("font_size", 16)
+		_next.add_theme_font_size_override("font_size", 14)
+		_tags.add_theme_font_size_override("font_size", 14)
+		_dps.add_theme_font_size_override("font_size", 20)
 
 
 func refresh(tower: Tower, gold: int) -> void:
@@ -164,9 +172,9 @@ func refresh(tower: Tower, gold: int) -> void:
 			var button := UIKit.button(label, "ChipButton",
 				func() -> void: module_pressed.emit(String(module_id)))
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			button.custom_minimum_size.y = 56
+			button.custom_minimum_size.y = 56 if not _compact else 72
 			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			button.add_theme_font_size_override("font_size", 13)
+			button.add_theme_font_size_override("font_size", 13 if not _compact else 15)
 			_module_row.add_child(button)
 
 
