@@ -71,10 +71,11 @@ func setup(p_def: Dictionary, p_hp: float, p_speed: float, p_armor: float,
 	var path_sprite := SPRITE_DIR + String(p_def.get("sprite", "grunt")) + ".png"
 	if ResourceLoader.exists(path_sprite):
 		_sprite.texture = load(path_sprite)
-	# Centre the sprite on the unit so rotating it spins around its own centre (the pivot is
-	# the node origin), not around a corner of the texture.
-	if _sprite.texture != null:
-		_sprite.offset = -_sprite.texture.get_size() * 0.5
+	# Sprite2D is centred on the node origin by default (`centered = true`): the sprite
+	# sits exactly on the unit, so rotating it spins around its own centre and the health
+	# bar drawn above the node stays centred on the sprite. (Do not add an `offset` here —
+	# that would shift the sprite off the unit.)
+	_sprite.centered = true
 	_sprite.scale = Vector2(scale_factor, scale_factor)
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	add_child(_sprite)

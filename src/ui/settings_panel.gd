@@ -56,7 +56,8 @@ func _notification(what: int) -> void:
 			_columns = desired
 			_build()
 			layout_changed.emit()
-	super._notification(what)
+	# No `super._notification()` call: the parent (Control) defines no `_notification` in
+	# GDScript, and calling it is a parse error on Godot 4.7.
 
 
 func _layout_sections() -> void:

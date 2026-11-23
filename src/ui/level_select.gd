@@ -26,8 +26,7 @@ func _build() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
 
-	var row := FlowContainer.new()
-	row.flow_direction = FlowContainer.FLOW_DIRECTION_LEFT_TO_RIGHT
+	var row := HFlowContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	scroll.add_child(row)
