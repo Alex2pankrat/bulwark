@@ -5,8 +5,10 @@ extends Screen
 ## 420 px column stretched down a desktop window, and never squeezed on a phone. The panel
 ## itself switches between one and two columns from its own size.
 
-## Maximum panel width before it stops growing (centred on wider screens).
+## Maximum panel width before it stops growing (centred on wider screens). On compact screens
+## the panel is allowed to use more of the viewport so it never feels cramped on a phone.
 const PANEL_MAX_WIDTH := 1000.0
+const PANEL_MAX_WIDTH_COMPACT := 1200.0
 
 var _panel: SettingsPanel
 var _viewport: Control
@@ -15,6 +17,7 @@ var _resized_connected := false
 
 
 func _build() -> void:
+	var compact := UIKit.is_compact()
 	var column := UIKit.vbox(14)
 	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_content(column)
@@ -22,7 +25,7 @@ func _build() -> void:
 	var header := UIKit.hbox(12)
 	header.add_child(UIKit.icon_button("back", Palette.TEXT, func() -> void:
 		Audio.play_sfx("ui_back", -6.0)
-		on_back(), 44))
+		on_back(), 44 if not compact else 52))
 	header.add_child(UIKit.label(Loc.t("settings.title"), "TitleLabel"))
 	header.add_child(UIKit.spacer(true))
 	header.add_child(UIKit.label(Loc.t("settings.saved"), "TinyLabel"))
@@ -73,7 +76,8 @@ func _layout_panel() -> void:
 		return
 	if _viewport.size.x <= 0.0:
 		return
-	var width := mini(PANEL_MAX_WIDTH, maxf(420.0, _viewport.size.x - 32.0))
+	var max_width := PANEL_MAX_WIDTH_COMPACT if UIKit.is_compact() else PANEL_MAX_WIDTH
+	var width := mini(max_width, maxf(420.0, _viewport.size.x - 32.0))
 	var height := maxf(_panel.min_size.y, 200.0)
 	var x := maxf(8.0, (_viewport.size.x - width) * 0.5)
 	_panel.offset_left = x

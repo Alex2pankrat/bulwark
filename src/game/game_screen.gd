@@ -29,6 +29,7 @@ var lives_max: int = 0
 var gold_earned: int = 0
 
 var _board_root: Node2D
+var _board_bg: ColorRect
 var _board: Board
 var _entities: Node2D
 var _projectile_layer: Node2D
@@ -91,6 +92,16 @@ func _build_world() -> void:
 
 	ground_path = PathModel.from_cells(level.get("path", []), grid.cell_size)
 	air_path = _build_air_path(level.get("path", []))
+
+	# Full-screen board-toned backdrop. On a phone the board is scaled to fill the screen, so
+	# this paints the areas outside the grid with the board's own background colour instead of
+	# the app background — the playfield reads as one continuous field. Hidden on desktop, where
+	# the board sits inset on the app background.
+	_board_bg = ColorRect.new()
+	_board_bg.color = Palette.BOARD_BG
+	_board_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_board_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_board_bg)
 
 	_board_root = Node2D.new()
 	add_child(_board_root)
@@ -175,15 +186,15 @@ func _apply_starting_state() -> void:
 ## Phones (and small windows) get the board at the full screen with the HUD floating on top of
 ## it; desktop keeps the inset layout with the HUD living in the reserved margins.
 func _compact_viewport() -> bool:
-	if OS.has_feature("mobile"):
-		return true
-	return size.x < 900.0 or size.y < 560.0
+	return UIKit.is_compact()
 
 
 func _layout() -> void:
 	if _board_root == null:
 		return
 	var compact := _compact_viewport()
+	if _board_bg != null:
+		_board_bg.visible = compact
 	var margin_side := COMPACT_INSET if compact else BOARD_MARGIN_SIDE
 	var margin_top := COMPACT_INSET if compact else BOARD_MARGIN_TOP
 	var margin_bottom := COMPACT_INSET if compact else BOARD_MARGIN_BOTTOM

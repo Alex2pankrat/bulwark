@@ -22,6 +22,8 @@ signal layout_changed()
 ## Minimum panel width before the sections split into two columns.
 const TWO_COLUMN_MIN_WIDTH := 760.0
 
+var _compact := false
+
 var _shake_slider: ValueSlider
 var _shake_value: Label
 var _body: Control
@@ -30,6 +32,7 @@ var _columns := 1
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 16)
+	_compact = UIKit.is_compact()
 	_build()
 
 
@@ -86,9 +89,17 @@ func _layout_sections() -> void:
 
 # --- Sections ------------------------------------------------------------------------------------
 
+## Section heading; larger on compact screens to match the enlarged rows.
+func _heading(text: String) -> Label:
+	var label := UIKit.label(text, "HeadingLabel")
+	if _compact:
+		label.add_theme_font_size_override("font_size", 22)
+	return label
+
+
 func _audio_section() -> VBoxContainer:
 	var box := _section_box()
-	box.add_child(UIKit.label(Loc.t("settings.audio"), "HeadingLabel"))
+	box.add_child(_heading(Loc.t("settings.audio")))
 	_slider_row(box, "sound", "settings.master", "master_volume")
 	_slider_row(box, "music", "settings.music", "music_volume")
 	_slider_row(box, "bolt", "settings.sfx", "sfx_volume")
@@ -97,7 +108,7 @@ func _audio_section() -> VBoxContainer:
 
 func _gameplay_section() -> VBoxContainer:
 	var box := _section_box()
-	box.add_child(UIKit.label(Loc.t("settings.gameplay"), "HeadingLabel"))
+	box.add_child(_heading(Loc.t("settings.gameplay")))
 	_choice_row(box, "settings.difficulty", _difficulty_options(), App.difficulty(),
 		func(index: int) -> void: App.set_setting("difficulty", index))
 	_choice_row(box, "settings.language", _language_options(),
@@ -108,7 +119,7 @@ func _gameplay_section() -> VBoxContainer:
 
 func _accessibility_section() -> VBoxContainer:
 	var box := _section_box()
-	box.add_child(UIKit.label(Loc.t("settings.accessibility"), "HeadingLabel"))
+	box.add_child(_heading(Loc.t("settings.accessibility")))
 	_toggle_row(box, "grid", "settings.grid_overlay", "grid_overlay")
 	_toggle_row(box, "target", "settings.damage_numbers", "damage_numbers")
 	_toggle_row(box, "reset", "settings.reduce_motion", "reduce_motion")
@@ -119,7 +130,7 @@ func _accessibility_section() -> VBoxContainer:
 
 func _licence_section() -> VBoxContainer:
 	var box := _section_box()
-	box.add_child(UIKit.label(Loc.t("credits.license"), "HeadingLabel"))
+	box.add_child(_heading(Loc.t("credits.license")))
 	_button_row(box, "settings.reset_progress", "DangerButton", _confirm_reset)
 	return box
 
@@ -134,9 +145,11 @@ func _section_box() -> VBoxContainer:
 
 func _slider_row(parent: Control, icon_name: String, label_key: String, setting_key: String) -> void:
 	var row := UIKit.hbox(10)
-	row.add_child(Glyph.of(icon_name, 18, Palette.TEXT_MUTED))
+	row.add_child(Glyph.of(icon_name, 18 if not _compact else 22, Palette.TEXT_MUTED))
 	var label := UIKit.label(Loc.t(label_key), "SmallLabel")
-	label.custom_minimum_size.x = 150
+	label.custom_minimum_size.x = 150 if not _compact else 170
+	if _compact:
+		label.add_theme_font_size_override("font_size", 16)
 	row.add_child(label)
 	var slider := ValueSlider.new()
 	slider.value = float(App.get_setting(setting_key))
@@ -150,8 +163,10 @@ func _slider_row(parent: Control, icon_name: String, label_key: String, setting_
 
 func _toggle_row(parent: Control, icon_name: String, label_key: String, setting_key: String) -> void:
 	var row := UIKit.hbox(10)
-	row.add_child(Glyph.of(icon_name, 18, Palette.TEXT_MUTED))
+	row.add_child(Glyph.of(icon_name, 18 if not _compact else 22, Palette.TEXT_MUTED))
 	var label := UIKit.label(Loc.t(label_key), "SmallLabel")
+	if _compact:
+		label.add_theme_font_size_override("font_size", 16)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(label)
 	var toggle := ToggleSwitch.new()
@@ -163,9 +178,11 @@ func _toggle_row(parent: Control, icon_name: String, label_key: String, setting_
 
 func _shake_row(parent: Control) -> void:
 	var row := UIKit.hbox(10)
-	row.add_child(Glyph.of("star", 18, Palette.TEXT_MUTED))
+	row.add_child(Glyph.of("star", 18 if not _compact else 22, Palette.TEXT_MUTED))
 	var label := UIKit.label(Loc.t("settings.screen_shake"), "SmallLabel")
-	label.custom_minimum_size.x = 150
+	label.custom_minimum_size.x = 150 if not _compact else 170
+	if _compact:
+		label.add_theme_font_size_override("font_size", 16)
 	row.add_child(label)
 	_shake_slider = ValueSlider.new()
 	_shake_slider.value = float(App.get_setting("screen_shake"))
@@ -184,11 +201,19 @@ func _choice_row(parent: Control, label_key: String, options: Array[String], sel
 		on_select: Callable) -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 6)
-	column.add_child(UIKit.label(Loc.t(label_key), "SmallLabel"))
+	var label := UIKit.label(Loc.t(label_key), "SmallLabel")
+	if _compact:
+		label.add_theme_font_size_override("font_size", 16)
+	column.add_child(label)
 	var entries: Array[Dictionary] = []
 	for option in options:
 		entries.append({"label": option})
 	var row := UIKit.chip_row(entries, selected)
+	if _compact:
+		for child in row.get_children():
+			if child is Button:
+				(child as Button).custom_minimum_size.y = 48
+				(child as Button).add_theme_font_size_override("font_size", 15)
 	UIKit.wire_chips(row, on_select)
 	column.add_child(row)
 	parent.add_child(column)
@@ -196,7 +221,9 @@ func _choice_row(parent: Control, label_key: String, options: Array[String], sel
 
 func _button_row(parent: Control, label_key: String, variation: String, on_press: Callable) -> void:
 	var button := UIKit.button(Loc.t(label_key), variation, on_press)
-	button.custom_minimum_size = Vector2(0, 46)
+	button.custom_minimum_size = Vector2(0, 46 if not _compact else 58)
+	if _compact:
+		button.add_theme_font_size_override("font_size", 16)
 	parent.add_child(button)
 
 

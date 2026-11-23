@@ -17,7 +17,8 @@ var _border: StyleBoxFlat
 func setup(id: String, def: Dictionary) -> void:
 	tower_id = id
 	cost = int(def.get("cost", 0))
-	custom_minimum_size = Vector2(74, 82)
+	var compact := UIKit.is_compact()
+	custom_minimum_size = Vector2(74, 82) if not compact else Vector2(96, 104)
 	focus_mode = Control.FOCUS_ALL
 	theme_type_variation = "IconButton"
 	tooltip_text = "%s\n%s\n%s %d" % [
@@ -33,7 +34,7 @@ func setup(id: String, def: Dictionary) -> void:
 	add_child(column)
 
 	_sprite = TextureRect.new()
-	_sprite.custom_minimum_size = Vector2(0, 46)
+	_sprite.custom_minimum_size = Vector2(0, 46 if not compact else 60)
 	_sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -47,9 +48,11 @@ func setup(id: String, def: Dictionary) -> void:
 	price_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	price_row.add_theme_constant_override("separation", 3)
 	price_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_coin = Glyph.of("coin", 12, Palette.GOLD)
+	_coin = Glyph.of("coin", 12 if not compact else 15, Palette.GOLD)
 	price_row.add_child(_coin)
 	_cost_label = UIKit.label(str(cost), "SmallLabel")
+	if compact:
+		_cost_label.add_theme_font_size_override("font_size", 16)
 	price_row.add_child(_cost_label)
 	column.add_child(price_row)
 

@@ -8,6 +8,26 @@ extends RefCounted
 
 ## Minimum finger target on a phone, scaled by the UI stretch factor.
 const TOUCH := Vector2(48, 48)
+## Enlarged finger target used on phones and small windows, where the layout is compact and
+## the larger sizes stay comfortably tappable without dominating the screen.
+const TOUCH_COMPACT := Vector2(58, 58)
+
+
+## True when the UI should use the enlarged phone layout: mobile builds, or a window too small
+## for the desktop insets. One source of truth shared by the game screen and every widget.
+static func is_compact() -> bool:
+	if OS.has_feature("mobile"):
+		return true
+	var window := DisplayServer.window_get_size()
+	if window.x <= 0.0 or window.y <= 0.0:
+		# Headless or not-yet-created window: treat as compact so touch sizes stay safe.
+		return true
+	return window.x < 900.0 or window.y < 560.0
+
+
+## Minimum control height for the current screen (buttons, chips, ...).
+static func touch_min() -> float:
+	return TOUCH_COMPACT.y if is_compact() else TOUCH.y
 
 
 static func vbox(separation: int = 10) -> VBoxContainer:
@@ -58,7 +78,7 @@ static func button(text: String, variation: String = "", on_pressed: Callable = 
 	node.text = text
 	if variation != "":
 		node.theme_type_variation = variation
-	node.custom_minimum_size.y = TOUCH.y
+	node.custom_minimum_size.y = touch_min()
 	node.focus_mode = Control.FOCUS_ALL
 	if on_pressed.is_valid():
 		node.pressed.connect(on_pressed)

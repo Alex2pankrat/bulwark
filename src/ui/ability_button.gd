@@ -17,7 +17,8 @@ var _cooldown := 0.0
 func setup(def: Dictionary) -> void:
 	ability_id = String(def.get("id", ""))
 	_cooldown = maxf(0.1, float(def.get("cooldown", 30.0)))
-	custom_minimum_size = Vector2(64, 64)
+	var compact := UIKit.is_compact()
+	custom_minimum_size = Vector2(64, 64) if not compact else Vector2(80, 80)
 	focus_mode = Control.FOCUS_ALL
 	theme_type_variation = "IconButton"
 	_color = Palette.element_color(String(def.get("color", "energy")))
@@ -30,7 +31,7 @@ func setup(def: Dictionary) -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
-	_glyph = Glyph.of(String(def.get("icon", "bolt")), 26, _color)
+	_glyph = Glyph.of(String(def.get("icon", "bolt")), 26 if not compact else 34, _color)
 	center.add_child(_glyph)
 
 	_mask = CooldownMask.new()
