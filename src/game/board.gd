@@ -12,6 +12,7 @@ const FRAME := 10.0
 var grid: BuildGrid
 var level: Dictionary = {}
 var ground_path: PathModel
+var show_grid := true
 
 var _props: Dictionary = {}          ## prop name -> Texture2D
 var _hover_cell := Vector2i(-1, -1)
@@ -21,7 +22,6 @@ var _hover_origin := Vector2.ZERO
 var _ability_preview: Dictionary = {}
 var _preview_tower := ""             ## tower id being placed (ghost icon)
 var _ghost_texture: Texture2D
-var show_grid := true
 
 
 func setup(p_grid: BuildGrid, p_level: Dictionary, p_path: PathModel) -> void:

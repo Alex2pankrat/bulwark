@@ -12,6 +12,9 @@ const DEFAULT_PATH := "user://bulwark_save.json"
 
 var path: String
 
+## Explains the most recent load/save problem ("" when everything went fine).
+var last_error: String = ""
+
 
 func _init(p_path: String = DEFAULT_PATH) -> void:
 	path = p_path
@@ -19,10 +22,6 @@ func _init(p_path: String = DEFAULT_PATH) -> void:
 
 func backup_path() -> String:
 	return path + ".bak"
-
-
-## Explains the most recent load/save problem ("" when everything went fine).
-var last_error: String = ""
 
 
 ## Loads the save file, returning a `{version, settings, progress}` dictionary.
