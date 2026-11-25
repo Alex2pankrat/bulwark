@@ -15,6 +15,9 @@ echo "== unit tests =="
 echo "== level smoke test =="
 "$GODOT" --headless --path . res://tests/smoke_level.tscn
 
+echo "== UI screen tests =="
+"$GODOT" --headless --path . res://tests/test_screens.tscn
+
 for d in 0 1 2; do
   echo "== autoplay, difficulty $d =="
   # --fixed-fps keeps the balance numbers comparable between runs and between machines.

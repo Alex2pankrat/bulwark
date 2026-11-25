@@ -52,12 +52,23 @@ jobs:
       - name: Level smoke test
         run: '"$GODOT_BIN" --headless --path . res://tests/smoke_level.tscn'
 
+      - name: UI screen tests
+        run: '"$GODOT_BIN" --headless --path . res://tests/test_screens.tscn'
+
       - name: Balance regression (autoplay)
         run: |
           set -euo pipefail
           for d in 0 1 2; do
             "$GODOT_BIN" --headless --fixed-fps 480 --path . res://tests/autoplay.tscn -- --difficulty="$d"
           done
+
+      - name: GDScript lint
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check gdtoolkit==4.5.0
+          gdlint $(find src -name '*.gd')
+
+      - name: Version consistency check
+        run: python3 tools/check_version.py
 
   export:
     name: Export (${{ matrix.preset }})
@@ -240,6 +251,21 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+      - name: Verify version bump
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          current="${GITHUB_REF_NAME}"
+          prev="$(git tag --sort=-creatordate | grep -v -x "$current" | head -1 || true)"
+          if [ -n "$prev" ]; then
+            python3 tools/check_version.py --prev "$prev"
+          else
+            echo "check_version: no previous release tag found; skipping bump check."
+          fi
       - uses: actions/download-artifact@v4
         with:
           path: artifacts

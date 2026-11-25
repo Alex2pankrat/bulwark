@@ -1,0 +1,17 @@
+# Project GDScript lint configuration.
+#
+# Kept deliberately permissive on the four style rules the existing codebase does not follow,
+# while every structural/naming rule stays at the defaults (and is enforced in CI). The two
+# `class-definitions-order` violations that existed were fixed in code rather than relaxed here.
+#
+#   max-line-length    translation strings in src/core/l10n.gd are long literals and cannot be
+#                      wrapped; 140 covers them.
+#   max-public-methods HUD is a UI class with many small accessors/handlers.
+#   max-file-lines     game_screen.gd legitimately holds the whole in-game screen.
+#   unused-argument    two internal callbacks take a parameter they intentionally ignore;
+#                      disabled via the `disable` list below (see gdlint's config semantics).
+max-line-length: 140
+max-public-methods: 30
+max-file-lines: 1200
+disable:
+  - unused-argument
