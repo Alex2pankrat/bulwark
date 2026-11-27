@@ -51,7 +51,7 @@ jobs:
         run: '"$GODOT_BIN" --headless --path . res://tests/test_core.tscn'
 
       - name: Level smoke test
-        run: '"$GODOT_BIN" --headless --path . res://tests/smoke_level.tscn'
+        run: '"$GODOT_BIN" --headless --fixed-fps 480 --path . res://tests/smoke_level.tscn'
 
       - name: UI screen tests
         run: '"$GODOT_BIN" --headless --path . res://tests/test_screens.tscn'
