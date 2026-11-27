@@ -74,6 +74,7 @@ jobs:
     name: Screenshots
     needs: tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -97,7 +98,10 @@ jobs:
       - name: Capture screenshots
         run: |
           mkdir -p /tmp/shots
-          "$GODOT_BIN" --headless --path . res://tools/screenshot.tscn -- --out=/tmp/shots
+          # screenshot.gd drives real scenes with a viewport + DisplayServer, so it needs a
+          # real display, not the headless display server (which never resolves
+          # RenderingServer.frame_post_draw and hangs). xvfb-run is preinstalled on ubuntu runners.
+          xvfb-run -a "$GODOT_BIN" --path . res://tools/screenshot.tscn -- --out=/tmp/shots
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
@@ -280,6 +284,7 @@ jobs:
           if-no-files-found: error
 
   installer-windows:
+    timeout-minutes: 20
     name: Installer (Windows .msi)
     needs: [export]
     runs-on: windows-latest
@@ -287,6 +292,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Godot
+        shell: bash
         run: |
           set -euo pipefail
           curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot.zip \
@@ -297,17 +303,21 @@ jobs:
           /c/godot/godot.exe --version
 
       - name: Import project
+        shell: bash
         run: '/c/godot/godot.exe --headless --path . --import || true'
 
       - name: Export Windows build
+        shell: bash
         run: |
           mkdir -p build/windows
           /c/godot/godot.exe --headless --path . --export-release "Windows" build/windows/bulwark.exe
 
       - name: Install WiX Toolset
+        shell: bash
         run: choco install wix3 --yes --no-progress
 
       - name: Build .msi
+        shell: bash
         env:
           VERSION: ${{ github.event.ref_name }}
         run: |
@@ -316,6 +326,9 @@ jobs:
           if not echo "$VERSION" | grep -q '^v[0-9]'; then
             VERSION="v$(grep -oP 'config/version="\K[^"]+' project.godot | head -1)"
           fi
+          # choco installs WiX into a versioned dir that is not always on PATH; locate it.
+          WIX_BIN="$(ls -d "/c/Program Files (x86)/WiX Toolset v3."*/bin 2>/dev/null | head -1)"
+          if [ -n "$WIX_BIN" ]; then export PATH="$WIX_BIN:$PATH"; fi
           mkdir -p build/msi
           candle -dVERSION="${VERSION#v}" -dBuildDir="${{ github.workspace }}/build/windows" \
             -out build/msi/bulwark.wixobj tools/installer/bulwark.wxs
@@ -330,6 +343,7 @@ jobs:
           if-no-files-found: error
 
   installer-macos:
+    timeout-minutes: 20
     name: Installer (macOS .dmg)
     needs: [export]
     runs-on: macos-latest
