@@ -303,6 +303,18 @@ jobs:
           mv "/c/godot/Godot_v${GODOT_VERSION}-stable_win64.exe" /c/godot/godot.exe
           /c/godot/godot.exe --version
 
+      - name: Install export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          # --export-release needs the export templates installed headless; without them
+          # Godot aborts the export. Download the platform-agnostic templates.tpz once.
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
       - name: Import project
         shell: bash
         run: '/c/godot/godot.exe --headless --path . --import || true'
@@ -325,10 +337,12 @@ jobs:
           set -euo pipefail
           # Fall back to the project version when the ref is not a tag (e.g. a PR branch).
           if not echo "$VERSION" | grep -q '^v[0-9]'; then
-            VERSION="v$(grep -oP 'config/version="\K[^"]+' project.godot | head -1)"
+            VERSION="v$(sed -n 's/.*config\/version="\([^"]*\)".*/\1/p' project.godot | head -1)"
           fi
           # choco installs WiX into a versioned dir that is not always on PATH; locate it.
-          WIX_BIN="$(ls -d "/c/Program Files (x86)/WiX Toolset v3."*/bin 2>/dev/null | head -1)"
+          for d in "/c/Program Files (x86)/WiX Toolset v3."* "/c/Program Files/WiX Toolset v3."*; do
+            if [ -d "$d/bin" ]; then WIX_BIN="$d/bin"; break; fi
+          done
           if [ -n "$WIX_BIN" ]; then export PATH="$WIX_BIN:$PATH"; fi
           mkdir -p build/msi
           candle -dVERSION="${VERSION#v}" -dBuildDir="${{ github.workspace }}/build/windows" \
@@ -362,6 +376,17 @@ jobs:
           chmod +x /tmp/godot/godot
           /tmp/godot/godot --version
 
+      - name: Install export templates
+        run: |
+          set -euo pipefail
+          # --export-release needs the export templates installed headless; without them
+          # Godot aborts the export. Download the platform-agnostic templates.tpz once.
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
       - name: Import project
         run: '/tmp/godot/godot --headless --path . --import || true'
 
@@ -376,7 +401,7 @@ jobs:
         run: |
           set -euo pipefail
           if not echo "$VERSION" | grep -q '^v[0-9]'; then
-            VERSION="v$(grep -oP 'config/version="\K[^"]+' project.godot | head -1)"
+            VERSION="v$(sed -n 's/.*config\/version="\([^"]*\)".*/\1/p' project.godot | head -1)"
           fi
           mkdir -p build/dmg/staging
           cp -R build/macos/bulwark.app build/dmg/staging/
