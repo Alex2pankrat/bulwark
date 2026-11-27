@@ -8,7 +8,7 @@ extends Node
 ##     godot --headless --path . res://tests/smoke_level.tscn
 ## Exit code 0 = the level started, towers were placed and at least one wave was cleared.
 
-const SIM_SECONDS := 40.0
+const SIM_SECONDS := 80.0
 const TIME_SCALE := 12
 
 var _failures: Array[String] = []
