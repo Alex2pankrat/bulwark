@@ -61,8 +61,12 @@ func _play(index: int) -> void:
 	var scene: PackedScene = load("res://scenes/game.tscn")
 	var game := scene.instantiate() as GameScreen
 	add_child(game)
-	await get_tree().process_frame
-	await get_tree().process_frame
+	# Wait for the scene to finish initialising (load the level, build the board). A
+	# fixed two-frame wait is flaky on a loaded CI runner; poll up to ~6s of frames.
+	var init_tries := 0
+	while not game.is_initialised() and init_tries < 360:
+		await get_tree().process_frame
+		init_tries += 1
 
 	var candidates := _rank_cells(game)
 	var built := 0
