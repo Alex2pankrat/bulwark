@@ -126,7 +126,7 @@ func _play(index: int) -> void:
 			last_wave = int(snapshot["wave"])
 			print("    wave %d: lives %d, gold %d, towers %d" % [
 				last_wave, int(snapshot["lives"]), int(snapshot["gold"]), int(snapshot["towers"])])
-		if int(snapshot["gold"]) < 60:
+		if int(snapshot["gold"]) < 60 and built >= 4:
 			game._on_call_wave()
 
 	if not game.is_initialised():
