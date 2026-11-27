@@ -19,22 +19,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Godot downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/godot.zip
+            /tmp/templates.tpz
+          key: godot-dl-${{ GODOT_VERSION }}-linux
+          restore-keys: godot-dl-${{ GODOT_VERSION }}-
+
       - name: Install Godot
         run: |
           set -euo pipefail
           mkdir -p /opt/godot
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot.zip \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          # Reuse cached downloads when present. Anonymous release-asset downloads are
+          # rate-limited per-IP on shared runners; the Authorization header authenticates
+          # the github.com redirect so the signed download URL is issued (bypassing the
+          # anonymous budget), and caching avoids re-downloading on subsequent runs.
+          dl() {
+            local url="$1" out="$2"
+            if [ ! -f "$out" ]; then
+              curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors \
+                -H "Authorization: Bearer ${GITHUB_TOKEN}" -o "$out" "$url"
+            fi
+          }
+          dl "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" /tmp/godot.zip
           unzip -q /tmp/godot.zip -d /opt/godot
           mv "/opt/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_BIN"
           chmod +x "$GODOT_BIN"
           "$GODOT_BIN" --version
           # The export templates are fetched here, once, and shared with every export job
-          # through an artifact: simultaneous anonymous downloads of the same release
-          # assets otherwise trip GitHub's per-IP asset budget.
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/templates.tpz \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-
+          # through an artifact.
+          dl "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" /tmp/templates.tpz
       - name: Share engine downloads with export jobs
         uses: actions/upload-artifact@v4
         with:
@@ -309,7 +325,7 @@ jobs:
           set -euo pipefail
           # --export-release needs the export templates installed headless; without them
           # Godot aborts the export. Download the platform-agnostic templates.tpz once.
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/templates.tpz \
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -H "Authorization: Bearer ${GITHUB_TOKEN}" -o /tmp/templates.tpz \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           mkdir -p ~/.local/share/godot/export_templates
           unzip -q /tmp/templates.tpz -d /tmp/templates
@@ -381,7 +397,7 @@ jobs:
           set -euo pipefail
           # --export-release needs the export templates installed headless; without them
           # Godot aborts the export. Download the platform-agnostic templates.tpz once.
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/templates.tpz \
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -H "Authorization: Bearer ${GITHUB_TOKEN}" -o /tmp/templates.tpz \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           mkdir -p ~/.local/share/godot/export_templates
           unzip -q /tmp/templates.tpz -d /tmp/templates
