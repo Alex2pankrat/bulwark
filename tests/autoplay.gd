@@ -15,7 +15,9 @@ extends Node
 ## play at 60 FPS — while the run still advances eight times faster than wall-clock time.
 ## That keeps the balance numbers comparable between runs instead of depending on frame rate.
 const TIME_SCALE := 8
-const REAL_TIMEOUT := 110.0     ## wall-clock guard per level
+const REAL_TIMEOUT := 240.0     ## wall-clock guard per level (generous: slow CI runners
+                                ## process fewer game frames per wall-clock second, so a
+                                ## winnable level can take well over 110s to finish)
 const MAX_TOWERS := 16
 
 ## The policy's opening build order; later towers repeat the last entry.
