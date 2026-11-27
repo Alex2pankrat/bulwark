@@ -47,6 +47,7 @@ var _ability_buttons: Dictionary = {}
 var _bottom_slot: HBoxContainer
 var _selected_tower_id := ""
 var _wave_total: int = 1
+var _endless := false
 var _compact := false
 
 
@@ -239,6 +240,8 @@ func setup_abilities(abilities: Abilities) -> void:
 
 
 func set_wave_total(total: int) -> void:
+	# total <= 0 means endless: the label shows the wave number without a "/N" total.
+	_endless = total <= 0
 	_wave_total = maxi(1, total)
 
 
@@ -254,7 +257,7 @@ func set_gold(value: int) -> void:
 
 
 func set_wave(index: int) -> void:
-	_wave_label.text = "%d/%d" % [mini(index, _wave_total), _wave_total]
+	_wave_label.text = "%d" % index if _endless else "%d/%d" % [mini(index, _wave_total), _wave_total]
 
 
 func set_speed(multiplier: int) -> void:

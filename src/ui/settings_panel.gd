@@ -28,11 +28,13 @@ var _shake_slider: ValueSlider
 var _shake_value: Label
 var _body: Control
 var _columns := 1
+var _save_status_label: Label
 
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 16)
 	_compact = UIKit.is_compact()
+	App.save_transfer_done.connect(_on_save_transfer)
 	_build()
 
 
@@ -64,7 +66,9 @@ func _layout_sections() -> void:
 	var sections: Array = [
 		_audio_section(),
 		_gameplay_section(),
+		_performance_section(),
 		_accessibility_section(),
+		_save_section(),
 		_licence_section(),
 	]
 	if _columns >= 2 and sections.size() >= 2:
@@ -118,6 +122,13 @@ func _gameplay_section() -> VBoxContainer:
 	return box
 
 
+func _performance_section() -> VBoxContainer:
+	var box := _section_box()
+	box.add_child(_heading(Loc.t("settings.performance")))
+	_toggle_row(box, "speed", "settings.perf_overlay", "perf_overlay")
+	return box
+
+
 func _accessibility_section() -> VBoxContainer:
 	var box := _section_box()
 	box.add_child(_heading(Loc.t("settings.accessibility")))
@@ -134,6 +145,38 @@ func _licence_section() -> VBoxContainer:
 	box.add_child(_heading(Loc.t("credits.license")))
 	_button_row(box, "settings.reset_progress", "DangerButton", _confirm_reset)
 	return box
+
+
+## Save transfer: export the current profile to a .json file, or import one.
+func _save_section() -> VBoxContainer:
+	var box := _section_box()
+	box.add_child(_heading(Loc.t("settings.save_data")))
+	var help := UIKit.wrapped(Loc.t("settings.save_data_help"), "SmallLabel", 460)
+	if _compact:
+		help.add_theme_font_size_override("font_size", 16)
+	box.add_child(help)
+
+	var row := UIKit.hbox(8)
+	var export_button := UIKit.button(Loc.t("settings.export_save"), "GhostButton",
+		func() -> void: App.export_save())
+	export_button.custom_minimum_size = Vector2(140, 34 if not _compact else 42)
+	var import_button := UIKit.button(Loc.t("settings.import_save"), "GhostButton",
+		func() -> void: App.import_save())
+	import_button.custom_minimum_size = Vector2(140, 34 if not _compact else 42)
+	row.add_child(export_button)
+	row.add_child(import_button)
+	box.add_child(row)
+
+	_save_status_label = UIKit.label("", "TinyLabel")
+	_save_status_label.add_theme_color_override("font_color", Palette.TEXT_MUTED)
+	box.add_child(_save_status_label)
+	return box
+
+
+## Shows the result of an export/import as a status line in the save section.
+func _on_save_transfer(action: String, message: String) -> void:
+	if _save_status_label != null:
+		_save_status_label.text = message
 
 
 func _section_box() -> VBoxContainer:

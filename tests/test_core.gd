@@ -26,6 +26,8 @@ func _ready() -> void:
 	_test_wave_plan()
 	_test_settings()
 	_test_save_store()
+	_test_save_transfer()
+	_test_achievements()
 
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -61,7 +63,8 @@ func _test_game_data() -> void:
 	_ok(problems.is_empty(), "content database has no problems: %s" % [problems])
 	_eq(GameData.tower_ids().size(), 6, "six towers are defined")
 	_eq(GameData.enemies().size(), 7, "seven enemy types are defined")
-	_eq(GameData.level_count(), 6, "six levels are defined")
+	_eq(GameData.level_count(), 9, "nine levels are defined (8 campaign + endless)")
+	_eq(GameData.campaign_level_count(), 8, "eight campaign levels (endless excluded)")
 	for id in GameData.tower_ids():
 		var def := GameData.tower(id)
 		_ok(not def.is_empty(), "tower %s resolves" % id)
@@ -77,13 +80,11 @@ func _test_game_data() -> void:
 func _test_localisation() -> void:
 	_case("L10n")
 	var en := L10n.EN.keys()
-	var ru := L10n.RU.keys()
 	var missing_ru: Array = []
 	for key in en:
-		if not (key in ru):
+		if not L10n.is_translated("ru", String(key)):
 			missing_ru.append(key)
-	_ok(missing_ru.is_empty(), "Russian table covers every English key: %s" % [missing_ru])
-	_ok(ru.size() == en.size(), "no orphan Russian keys (%d vs %d)" % [ru.size(), en.size()])
+	_ok(missing_ru.is_empty(), "Russian .po covers every English key: %s" % [missing_ru])
 
 	# Every key referenced from content data must exist, or the UI would show raw ids.
 	for id in GameData.tower_ids():
@@ -357,3 +358,72 @@ func _test_save_store() -> void:
 	_eq(int(migrated["version"]), SaveStore.SAVE_VERSION, "old saves are migrated to the current version")
 	_eq(String(migrated["settings"]["language"]), "ru", "migration keeps existing settings")
 	store.wipe()
+
+
+func _test_save_transfer() -> void:
+	_case("SaveStore transfer")
+	var store := SaveStore.new("user://test_transfer.json")
+	store.wipe()
+	var settings := {"master_volume": 0.42, "language": "ru"}
+	var progress := {"levels": {"level_01": {"stars": 2, "best_wave": 10, "cleared": true}}}
+
+	var err := store.export_to("user://test_export.json", settings, progress)
+	_ok(err.is_empty(), "export succeeds: %s" % err)
+	_ok(FileAccess.file_exists("user://test_export.json"), "export writes the file")
+
+	var imported := store.import_from("user://test_export.json")
+	_ok(not imported.is_empty(), "import reads the file back")
+	_near(float(imported["settings"]["master_volume"]), 0.42, "imported settings round-trip")
+	_eq(int(imported["progress"]["levels"]["level_01"]["stars"]), 2, "imported progress round-trips")
+
+	# A missing file is a handled, non-crashing case.
+	var missing := store.import_from("user://does_not_exist.json")
+	_ok(missing.is_empty(), "importing a missing file returns empty")
+	_ok(store.last_error != "", "missing-file import records an error")
+
+	# A corrupt file is a handled, non-crashing case.
+	var bad := FileAccess.open("user://test_bad.json", FileAccess.WRITE)
+	bad.store_string("not json at all")
+	bad.close()
+	var corrupt := store.import_from("user://test_bad.json")
+	_ok(corrupt.is_empty(), "corrupt import returns empty")
+	_ok(store.last_error != "", "corrupt import records an error")
+	store.wipe()
+
+
+func _test_achievements() -> void:
+	_case("Achievements")
+	var ach := Achievements.new()
+	_eq(ach.total_count(), 8, "eight achievements are defined")
+	_eq(ach.unlocked_count(), 0, "nothing is unlocked initially")
+
+	# First clear unlocks exactly the first-clear achievement.
+	var newly := ach.evaluate({"levels_cleared": 1, "max_stars": 0, "stars_earned": 0,
+		"total_stars": 24, "total_levels": 8, "best_wave_endless": 0, "flawless_levels": [],
+		"towers_in_run": 0, "bosses_killed": [], "total_ability_uses": 0})
+	_ok("first_clear" in newly, "clearing one level unlocks first_clear")
+	_ok(ach.is_unlocked("first_clear"), "first_clear is recorded as unlocked")
+
+	# A stronger snapshot unlocks more; already-unlocked ids are not re-emitted.
+	newly = ach.evaluate({"levels_cleared": 5, "max_stars": 3, "stars_earned": 10,
+		"total_stars": 24, "total_levels": 8, "best_wave_endless": 12, "flawless_levels": ["level_01"],
+		"towers_in_run": 16, "bosses_killed": ["boss"], "total_ability_uses": 12})
+	_ok("three_star" in newly, "three stars unlocks three_star")
+	_ok("endless_10" in newly, "reaching endless wave 10 unlocks endless_10")
+	_ok("no_leak" in newly, "a flawless level unlocks no_leak")
+	_ok("tower_master" in newly, "building 15 towers unlocks tower_master")
+	_ok("boss_slayer" in newly, "killing a boss unlocks boss_slayer")
+	_ok("all_cleared" not in newly, "all_cleared needs every level cleared")
+	_ok(not "first_clear" in newly, "already-unlocked achievements are not re-emitted")
+
+	# Every defined achievement is reachable and describable.
+	for id in ach.DEFINITIONS.keys():
+		var desc := ach.describe(id)
+		_ok(not String(desc.get("title", "")).is_empty(), "%s has a localised title" % id)
+
+	# Stored ids round-trip.
+	var stored := ach.to_store()
+	var reloaded := Achievements.new(stored)
+	_eq(reloaded.unlocked_count(), ach.unlocked_count(), "stored unlocks reload")
+	for id in stored:
+		_ok(reloaded.is_unlocked(id), "%s reloads as unlocked" % id)

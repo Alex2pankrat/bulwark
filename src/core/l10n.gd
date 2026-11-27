@@ -13,6 +13,7 @@ const EN := {
 	"app.tagline": "Hold the line.",
 	"menu.play": "Play",
 	"menu.levels": "Missions",
+	"menu.achievements": "Achievements",
 	"menu.settings": "Settings",
 	"menu.credits": "Credits",
 	"menu.quit": "Quit",
@@ -153,6 +154,16 @@ const EN := {
 	"settings.reset_progress": "Reset progress",
 	"settings.reset_confirm": "Erase all stars and unlocks?",
 	"settings.saved": "Saved automatically",
+	"settings.performance": "Performance",
+	"settings.perf_overlay": "Performance overlay",
+	"settings.save_data": "Save & data",
+	"settings.save_data_help": "Move progress between devices: export a .json save, or import one.",
+	"settings.export_save": "Export save",
+	"settings.import_save": "Import save",
+	"settings.save_exported": "Save exported",
+	"settings.save_imported": "Save imported",
+	"settings.save_failed": "Save transfer failed",
+	"settings.import_confirm": "Import this save? It replaces your current progress.",
 	"difficulty.easy": "Easy",
 	"difficulty.normal": "Normal",
 	"difficulty.hard": "Hard",
@@ -163,6 +174,27 @@ const EN := {
 	"result.next": "Next mission",
 	"result.menu": "Missions",
 	"result.unlocked": "Mission unlocked",
+	# Achievements
+	"ach.title": "Achievements",
+	"ach.unlocked": "Unlocked",
+	"ach.locked": "Locked",
+	"ach.progress": "{0} / {1}",
+	"ach.first_clear.name": "First Blood",
+	"ach.first_clear.desc": "Clear your first mission.",
+	"ach.three_star.name": "Perfection",
+	"ach.three_star.desc": "Take three stars on any mission.",
+	"ach.all_cleared.name": "Sector Secure",
+	"ach.all_cleared.desc": "Clear every campaign mission.",
+	"ach.tower_master.name": "Tower Master",
+	"ach.tower_master.desc": "Build 15 towers in a single run.",
+	"ach.no_leak.name": "Untouchable",
+	"ach.no_leak.desc": "Clear a mission without losing a single life.",
+	"ach.endless_10.name": "Endless Runner",
+	"ach.endless_10.desc": "Reach wave 10 in Endless mode.",
+	"ach.boss_slayer.name": "Boss Slayer",
+	"ach.boss_slayer.desc": "Defeat a Colossus.",
+	"ach.collection.name": "Collector",
+	"ach.collection.desc": "Earn every star in the campaign.",
 	# Missions
 	"level.1.name": "First Light",
 	"level.1.desc": "A single road, a handful of raiders. Learn the loop.",
@@ -176,6 +208,12 @@ const EN := {
 	"level.5.desc": "Two long legs and a knife-edge crossing.",
 	"level.6.name": "The Gauntlet",
 	"level.6.desc": "The longest route yet. Attrition wins here.",
+	"level.7.name": "The Labyrinth",
+	"level.7.desc": "Four long runs and no shortcuts. Cover every bend.",
+	"level.8.name": "The Citadel",
+	"level.8.desc": "The final hold. Two bosses and a road that never ends.",
+	"level.endless.name": "Endless",
+	"level.endless.desc": "Survival. Waves escalate forever — hold as long as you can.",
 	"level.progress": "Best: wave {0}",
 	# Tutorial tips
 	"tip.place": "Pick a tower, then tap a cream tile to build.",
@@ -183,6 +221,14 @@ const EN := {
 	"tip.upgrade": "Tap a built tower to upgrade it, change its targeting, or sell it.",
 	"tip.air": "Fliers cut the corners. Ground-only towers cannot hit them.",
 	"tip.beacon": "Beacons make every tower in range fire faster.",
+	"tip.welcome": "Welcome! Build on cream tiles, then call the wave.",
+	"tip.place_step": "Pick a tower, then tap a cream tile to build.",
+	"tip.call_step": "Press Call wave when ready — early calls earn gold.",
+	"tip.upgrade_step": "Tap a built tower to upgrade it, change its targeting, or sell it.",
+	"tip.ability_step": "Airstrike and Overclock turn a bad moment around.",
+	"tip.done": "You're set. Hold the line.",
+	"tutorial.step": "Step {0} / {1}",
+	"tutorial.skip": "Skip",
 	# Placement reasons
 	"ui.reason.out_of_bounds": "Outside the board",
 	"ui.reason.on_path": "The road is blocked",
@@ -201,201 +247,55 @@ const EN := {
 	"credits.made_with": "Made with Godot. Free and open source.",
 }
 
-const RU := {
-	"app.title": "BULWARK",
-	"app.tagline": "Держи строй.",
-	"menu.play": "Играть",
-	"menu.levels": "Миссии",
-	"menu.settings": "Настройки",
-	"menu.credits": "Авторы",
-	"menu.quit": "Выход",
-	"menu.continue": "Продолжить",
-	"common.back": "Назад",
-	"common.close": "Закрыть",
-	"common.resume": "Продолжить",
-	"common.restart": "Заново",
-	"common.cancel": "Отмена",
-	"common.on": "Вкл",
-	"common.off": "Выкл",
-	"common.reset": "Сброс",
-	"common.locked": "Закрыто",
-	"common.soon": "Скоро",
-	"hud.lives": "Жизни",
-	"hud.gold": "Золото",
-	"hud.wave": "Волна",
-	"hud.pause": "Пауза",
-	"hud.speed": "Скорость",
-	"game.prepare": "Подготовка",
-	"game.calling_in": "Следующая волна через",
-	"game.call_now": "Вызвать волну",
-	"game.wave_bonus": "Бонус за ранний вызов",
-	"game.victory": "Сектор удержан",
-	"game.defeat": "Сектор потерян",
-	"game.wave_reached": "Дошли до волны",
-	"game.lives_left": "Осталось жизней",
-	"game.gold_earned": "Заработано золота",
-	"game.interest": "Проценты",
-	"game.boss_incoming": "Приближается босс",
-	"build.title": "Строительство",
-	"build.empty_cell": "Выберите свободную клетку",
-	"build.insufficient": "Недостаточно золота",
-	"build.place_hint": "Нажмите на клетку",
-	"tower.level": "Уровень",
-	"tower.upgrade": "Улучшить",
-	"tower.sell": "Продать",
-	"tower.max_level": "Макс. уровень",
-	"tower.choose_module": "Выберите модуль",
-	"tower.module_installed": "Модуль",
-	"tower.targeting": "Приоритет",
-	"tower.dps": "Урон/с",
-	"tower.stat.damage": "Урон",
-	"tower.stat.rate": "Скорострельность",
-	"tower.stat.range": "Радиус",
-	"tower.stat.splash": "Осколки",
-	"tower.stat.chain": "Цепь",
-	"tower.stat.pierce": "Пробой брони",
-	"tower.stat.slow": "Замедление",
-	"tower.stat.aura": "Аура",
-	"tower.stat.targets": "Цели",
-	"tower.targets.both": "Воздух и земля",
-	"tower.targets.ground": "Только земля",
-	"tower.targets.air": "Только воздух",
-	"tower.refund": "Возврат",
-	"target.first": "Первый",
-	"target.last": "Последний",
-	"target.closest": "Ближний",
-	"target.strongest": "Сильный",
-	"target.weakest": "Слабый",
-	"tower.pulse.name": "Импульс",
-	"tower.pulse.desc": "Дешёвый скорострел. Бьёт и по земле, и по воздуху.",
-	"tower.cannon.name": "Пушка",
-	"tower.cannon.desc": "Тяжёлые снаряды по площади. Только земля.",
-	"tower.frost.name": "Мороз",
-	"tower.frost.desc": "Замедляет всё, до чего достаёт. Урон невелик.",
-	"tower.arc.name": "Дуга",
-	"tower.arc.desc": "Молния, перескакивающая между целями.",
-	"tower.rail.name": "Рейл",
-	"tower.rail.desc": "Дальний бой, пробивает броню.",
-	"tower.beacon.name": "Маяк",
-	"tower.beacon.desc": "Поддержка: ускоряет стрельбу соседних башен.",
-	"tower.cannon.module_a.name": "Кластер",
-	"tower.cannon.module_a.desc": "Намного шире взрыв, чуть медленнее.",
-	"tower.cannon.module_b.name": "Бетонобойный",
-	"tower.cannon.module_b.desc": "Больше урона и пробоя брони.",
-	"tower.pulse.module_a.name": "Двойная подача",
-	"tower.pulse.module_a.desc": "Гораздо быстрее, но слабее каждый выстрел.",
-	"tower.pulse.module_b.name": "Бронебойный",
-	"tower.pulse.module_b.desc": "Больше урона и пробой брони.",
-	"tower.frost.module_a.name": "Глубокий холод",
-	"tower.frost.module_a.desc": "Сильнее замедление и больше радиус.",
-	"tower.frost.module_b.name": "Осколок",
-	"tower.frost.module_b.desc": "Замедление слабее, зато есть урон.",
-	"tower.arc.module_a.name": "Перегрузка",
-	"tower.arc.module_a.desc": "Две дополнительные цели в цепи.",
-	"tower.arc.module_b.name": "Конденсатор",
-	"tower.arc.module_b.desc": "Сильнее бьёт, но радиус меньше.",
-	"tower.rail.module_a.name": "Снайпер",
-	"tower.rail.module_a.desc": "Ещё больше радиус и быстрее перезарядка.",
-	"tower.rail.module_b.name": "Саботаж",
-	"tower.rail.module_b.desc": "Помечает цель: она получает больше урона.",
-	"tower.beacon.module_a.name": "Темп",
-	"tower.beacon.module_a.desc": "Больше радиус ауры.",
-	"tower.beacon.module_b.name": "Резонанс",
-	"tower.beacon.module_b.desc": "Аура усиливает и урон башен.",
-	"enemy.grunt.name": "Пехотинец",
-	"enemy.runner.name": "Бегун",
-	"enemy.swarm.name": "Рой",
-	"enemy.brute.name": "Громила",
-	"enemy.flyer.name": "Летун",
-	"enemy.medic.name": "Лекарь",
-	"enemy.boss.name": "Колосс",
-	"enemy.trait.air": "Летает",
-	"enemy.trait.armor": "Бронирован",
-	"enemy.trait.heal": "Лечит",
-	"enemy.trait.immune_slow": "Не замедляется",
-	"enemy.trait.splits": "Делится",
-	"ability.airstrike.name": "Авиаудар",
-	"ability.airstrike.desc": "Нажмите на поле, чтобы разбомбить участок.",
-	"ability.overclock.name": "Разгон",
-	"ability.overclock.desc": "Все башни стреляют быстрее 6 секунд.",
-	"ability.ready": "Готово",
-	"ability.cooldown": "Заряжается",
-	"settings.title": "Настройки",
-	"settings.audio": "Звук",
-	"settings.master": "Общая громкость",
-	"settings.music": "Музыка",
-	"settings.sfx": "Эффекты",
-	"settings.gameplay": "Игра",
-	"settings.difficulty": "Сложность",
-	"settings.accessibility": "Доступность",
-	"settings.damage_numbers": "Числа урона",
-	"settings.screen_shake": "Тряска экрана",
-	"settings.reduce_motion": "Меньше анимаций",
-	"settings.grid_overlay": "Сетка",
-	"settings.colorblind": "Контрастные метки",
-	"settings.language": "Язык",
-	"settings.reset_progress": "Сбросить прогресс",
-	"settings.reset_confirm": "Стереть все звёзды и открытия?",
-	"settings.saved": "Сохраняется автоматически",
-	"difficulty.easy": "Легко",
-	"difficulty.normal": "Обычно",
-	"difficulty.hard": "Сложно",
-	"pause.title": "Пауза",
-	"result.stars_earned": "Звёзды",
-	"result.retry": "Ещё раз",
-	"result.next": "Следующая миссия",
-	"result.menu": "Миссии",
-	"result.unlocked": "Миссия открыта",
-	"level.1.name": "Первый свет",
-	"level.1.desc": "Одна дорога, горстка налётчиков. Освойте цикл.",
-	"level.2.name": "Перекрёсток",
-	"level.2.desc": "Длинный маршрут, больше брони и первые летуны.",
-	"level.3.name": "Теснина",
-	"level.3.desc": "Крутые повороты. Ленивая застройка не сработает.",
-	"level.4.name": "Змейка",
-	"level.4.desc": "Извилистый коридор. Каждый поворот — зона убийств.",
-	"level.5.name": "Раздел",
-	"level.5.desc": "Две длинные ветви и узкий переезд.",
-	"level.6.name": "Испытание",
-	"level.6.desc": "Самый длинный маршрут. Здесь побеждает износ.",
-	"level.progress": "Лучший: волна {0}",
-	"tip.place": "Выберите башню и нажмите на кремовую клетку.",
-	"tip.start": "Жмите «Вызвать волну», когда готовы — за ранний вызов дают золото.",
-	"tip.upgrade": "Нажмите на башню, чтобы улучшить, сменить приоритет или продать.",
-	"tip.air": "Летуны срезают углы. Башни, бьющие только по земле, их не достают.",
-	"tip.beacon": "Маяки ускоряют стрельбу всех башен в радиусе.",
-	"ui.reason.out_of_bounds": "За пределами поля",
-	"ui.reason.on_path": "Дорога занята",
-	"ui.reason.occupied": "Здесь уже стоит башня",
-	"ui.reason.reserved": "На декорациях не построить",
-	"ui.reason.no_gold": "Недостаточно золота",
-	"credits.title": "Авторы",
-	"credits.code": "Код и дизайн",
-	"credits.art": "Спрайты",
-	"credits.audio": "Звуковые эффекты",
-	"credits.music": "Музыка",
-	"credits.font": "Шрифт",
-	"credits.engine": "Движок",
-	"credits.license": "Лицензии",
-	"credits.made_with": "Сделано на Godot. Свободно и открыто.",
-}
+## Locales we ship. The English table above is the source of truth for keys and source strings
+## (each English value is the .po `msgid`); the actual translations live in `assets/locales/*.po`
+## and are loaded as Godot `Translation` resources below.
+const LOCALES: Array[String] = ["en", "ru"]
 
-const TABLES := {"en": EN, "ru": RU}
+const EN_TRANSLATION_PATH := "res://assets/locales/en.po"
+const RU_TRANSLATION_PATH := "res://assets/locales/ru.po"
+
+## locale -> Translation, populated lazily on first use.
+static var _translations: Dictionary = {}
 
 
-static func table(language: String) -> Dictionary:
-	return TABLES.get(language, EN)
+static func _ensure_loaded() -> void:
+	if not _translations.is_empty():
+		return
+	for path in [EN_TRANSLATION_PATH, RU_TRANSLATION_PATH]:
+		var translation := load(path) as Translation
+		if translation == null:
+			push_warning("L10n: could not load translation %s" % path)
+			continue
+		_translations[String(translation.get_locale())] = translation
 
 
-## Looks up `key`, falling back to English and finally to the key itself so a missing string
-## is obvious in-game instead of silently empty.
+## The English source string for a key — also the .po `msgid`. Unknown keys resolve to the key
+## itself, so a missing string is obvious in-game instead of silently empty.
+static func source(key: String) -> String:
+	return String(EN.get(key, key))
+
+
+## True when `key` has a real (non-empty) translation in `language`.
+static func is_translated(language: String, key: String) -> bool:
+	_ensure_loaded()
+	var translation: Translation = _translations.get(language) as Translation
+	if translation == null:
+		return false
+	return not translation.get_message(StringName(source(key))).is_empty()
+
+
+## Looks up `key`, falling back to English and finally to the key itself.
 static func translate(language: String, key: String) -> String:
-	var primary := table(language)
-	if primary.has(key):
-		return String(primary[key])
-	if EN.has(key):
-		return String(EN[key])
-	return key
+	_ensure_loaded()
+	var msgid := source(key)
+	if language == "en" or not _translations.has(language):
+		return msgid
+	var translation: Translation = _translations[language] as Translation
+	if translation == null:
+		return msgid
+	var msg := translation.get_message(StringName(msgid))
+	return String(msg) if not msg.is_empty() else msgid
 
 
 static func has_key(key: String) -> bool:

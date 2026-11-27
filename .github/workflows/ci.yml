@@ -70,6 +70,42 @@ jobs:
       - name: Version consistency check
         run: python3 tools/check_version.py
 
+  screenshots:
+    name: Screenshots
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot + export templates
+        uses: actions/download-artifact@v4
+        with:
+          name: godot-downloads
+          path: /opt/godot-dl
+
+      - name: Unpack Godot
+        run: |
+          set -euo pipefail
+          mkdir -p /opt/godot
+          unzip -q /opt/godot-dl/godot.zip -d /opt/godot
+          mv "/opt/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+
+      - name: Import project
+        run: '"$GODOT_BIN" --headless --path . --import || true'
+
+      - name: Capture screenshots
+        run: |
+          mkdir -p /tmp/shots
+          "$GODOT_BIN" --headless --path . res://tools/screenshot.tscn -- --out=/tmp/shots
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: /tmp/shots
+          if-no-files-found: error
+
   export:
     name: Export (${{ matrix.preset }})
     needs: tests
@@ -243,10 +279,107 @@ jobs:
           path: build/android/bulwark.apk
           if-no-files-found: error
 
+  installer-windows:
+    name: Installer (Windows .msi)
+    needs: [export]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_win64.zip"
+          mkdir -p /c/godot
+          unzip -q /tmp/godot.zip -d /c/godot
+          mv "/c/godot/Godot_v${GODOT_VERSION}-stable_win64.exe" /c/godot/godot.exe
+          /c/godot/godot.exe --version
+
+      - name: Import project
+        run: '/c/godot/godot.exe --headless --path . --import || true'
+
+      - name: Export Windows build
+        run: |
+          mkdir -p build/windows
+          /c/godot/godot.exe --headless --path . --export-release "Windows" build/windows/bulwark.exe
+
+      - name: Install WiX Toolset
+        run: choco install wix3 --yes --no-progress
+
+      - name: Build .msi
+        env:
+          VERSION: ${{ github.event.ref_name }}
+        run: |
+          set -euo pipefail
+          # Fall back to the project version when the ref is not a tag (e.g. a PR branch).
+          if not echo "$VERSION" | grep -q '^v[0-9]'; then
+            VERSION="v$(grep -oP 'config/version="\K[^"]+' project.godot | head -1)"
+          fi
+          mkdir -p build/msi
+          candle -dVERSION="${VERSION#v}" -dBuildDir="${{ github.workspace }}/build/windows" \
+            -out build/msi/bulwark.wixobj tools/installer/bulwark.wxs
+          light -ext WixUIExtension -out "build/msi/bulwark-${VERSION}-windows-x86_64.msi" \
+            build/msi/bulwark.wixobj
+
+      - name: Upload .msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: bulwark-windows-msi
+          path: build/msi/bulwark-*-windows-x86_64.msi
+          if-no-files-found: error
+
+  installer-macos:
+    name: Installer (macOS .dmg)
+    needs: [export]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.zip"
+          mkdir -p /tmp/godot
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          mv "/tmp/godot/Godot_v${GODOT_VERSION}-stable_macos.app/Contents/MacOS/Godot" /tmp/godot/godot
+          chmod +x /tmp/godot/godot
+          /tmp/godot/godot --version
+
+      - name: Import project
+        run: '/tmp/godot/godot --headless --path . --import || true'
+
+      - name: Export macOS app
+        run: |
+          mkdir -p build/macos
+          /tmp/godot/godot --headless --path . --export-release "macOS" build/macos/bulwark.app
+
+      - name: Build .dmg
+        env:
+          VERSION: ${{ github.event.ref_name }}
+        run: |
+          set -euo pipefail
+          if not echo "$VERSION" | grep -q '^v[0-9]'; then
+            VERSION="v$(grep -oP 'config/version="\K[^"]+' project.godot | head -1)"
+          fi
+          mkdir -p build/dmg/staging
+          cp -R build/macos/bulwark.app build/dmg/staging/
+          ln -s /Applications build/dmg/staging/Applications
+          hdiutil create -volname "Bulwark ${VERSION}" -srcfolder build/dmg/staging \
+            -ov -format UDZO "build/dmg/bulwark-${VERSION}-macos.dmg"
+
+      - name: Upload .dmg
+        uses: actions/upload-artifact@v4
+        with:
+          name: bulwark-macos-dmg
+          path: build/dmg/bulwark-*-macos.dmg
+          if-no-files-found: error
+
   release:
     name: Attach builds to release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [export, android]
+    needs: [export, android, installer-windows, installer-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -278,6 +411,10 @@ jobs:
           chmod +x "release_files/bulwark-${VERSION}-linux-x86_64"
           cp artifacts/bulwark-android/bulwark.apk "release_files/bulwark-${VERSION}-android.apk"
           (cd artifacts/bulwark-web && zip -qr "../../release_files/bulwark-${VERSION}-web.zip" .)
+          cp artifacts/bulwark-windows-msi/bulwark-*-windows-x86_64.msi \
+            "release_files/bulwark-${VERSION}-windows-x86_64.msi"
+          cp artifacts/bulwark-macos-dmg/bulwark-*-macos.dmg \
+            "release_files/bulwark-${VERSION}-macos.dmg"
       - uses: softprops/action-gh-release@v2
         with:
           files: release_files/*

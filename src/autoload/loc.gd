@@ -14,7 +14,7 @@ func _ready() -> void:
 
 
 func set_language(code: String) -> void:
-	var next := code if L10n.TABLES.has(code) else "en"
+	var next := code if L10n.LOCALES.has(code) else "en"
 	if next == language:
 		return
 	language = next

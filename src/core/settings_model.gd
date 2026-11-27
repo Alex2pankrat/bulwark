@@ -18,6 +18,7 @@ const DEFAULTS := {
 	"grid_overlay": true,
 	"colorblind_mode": false,
 	"tutorial_seen": false,
+	"perf_overlay": false,
 }
 
 const LANGUAGES: Array[String] = ["en", "ru"]

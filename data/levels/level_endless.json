@@ -1,0 +1,47 @@
+{
+	"id": "level_endless",
+	"name_key": "level.endless.name",
+	"desc_key": "level.endless.desc",
+	"mode": "endless",
+	"grid": {
+		"cols": 14,
+		"rows": 10,
+		"cell": 64
+	},
+	"path": [
+		[-1, 4],
+		[3, 4],
+		[3, 1],
+		[7, 1],
+		[7, 8],
+		[10, 8],
+		[10, 3],
+		[13, 3],
+		[13, 6],
+		[14, 6]
+	],
+	"scenery": [
+		[0, 0, "tree_a"],
+		[1, 0, "bush"],
+		[12, 0, "rock_a"],
+		[13, 0, "flower"],
+		[0, 9, "rock_b"],
+		[4, 9, "tree_b"],
+		[8, 9, "bush"],
+		[11, 9, "plant"],
+		[0, 6, "tree_a"],
+		[5, 6, "rock_b"],
+		[9, 5, "bush"],
+		[12, 5, "tree_a"],
+		[2, 3, "flower"],
+		[6, 0, "rock_a"],
+		[11, 2, "bush"]
+	],
+	"start_gold": 600,
+	"lives": 25,
+	"prep_time": 16.0,
+	"hp_mult": 0.92,
+	"waves": [
+		{"groups": [{"enemy": "grunt", "count": 8, "interval": 0.7}, {"enemy": "runner", "count": 6, "interval": 0.4, "start": 3.0}], "bonus": 25}
+	]
+}

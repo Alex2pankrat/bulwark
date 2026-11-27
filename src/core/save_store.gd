@@ -118,3 +118,50 @@ func wipe() -> void:
 	for target in [path, backup_path(), path + ".tmp"]:
 		if FileAccess.file_exists(target):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(target))
+
+
+## Serializes a save to `path` so it can be transferred between devices. Returns "" on success,
+## or a human-readable error message. Writes atomically (temp + rename) like `save_data`.
+func export_to(target_path: String, settings: Dictionary, progress: Dictionary) -> String:
+	var payload := {
+		"version": SAVE_VERSION,
+		"settings": settings,
+		"progress": progress,
+		"meta": {"saved_at": Time.get_unix_time_from_system(), "game": "bulwark"},
+	}
+	var tmp := target_path + ".tmp"
+	var file := FileAccess.open(tmp, FileAccess.WRITE)
+	if file == null:
+		return "cannot open %s (%s)" % [tmp, error_string(FileAccess.get_open_error())]
+	file.store_string(JSON.stringify(payload, "\t", false))
+	file.flush()
+	file.close()
+	var err := DirAccess.rename_absolute(
+		ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(target_path))
+	if err != OK:
+		return "rename failed: %s" % error_string(err)
+	last_error = ""
+	return ""
+
+
+## Reads a save file produced by `export_to` (or any compatible bulwark save). Returns a
+## `{settings, progress}` dictionary, or an empty dictionary with `last_error` set on failure.
+## Never throws: a corrupt or missing file is a handled case.
+func import_from(source_path: String) -> Dictionary:
+	if not FileAccess.file_exists(source_path):
+		last_error = "file not found: %s" % source_path
+		return {}
+	var text := FileAccess.get_file_as_string(source_path)
+	if text.strip_edges().is_empty():
+		last_error = "empty save file"
+		return {}
+	var json := JSON.new()
+	if json.parse(text) != OK or typeof(json.data) != TYPE_DICTIONARY:
+		last_error = "corrupt save file: %s" % json.get_error_message()
+		return {}
+	var data := json.data as Dictionary
+	last_error = ""
+	return {
+		"settings": data.get("settings", {}) if data.get("settings") is Dictionary else {},
+		"progress": data.get("progress", {}) if data.get("progress") is Dictionary else {},
+	}

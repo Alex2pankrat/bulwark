@@ -27,6 +27,7 @@ func _ready() -> void:
 	await _shot_level_select()
 	await _shot_settings()
 	await _shot_credits()
+	await _shot_achievements()
 	await _shot_game()
 	await _shot_mobile()
 	print("screenshots written to %s" % _out_dir)
@@ -79,6 +80,12 @@ func _shot_credits() -> void:
 	await _open("res://scenes/credits_screen.tscn")
 	await _frames(6)
 	await _capture("04_credits")
+
+
+func _shot_achievements() -> void:
+	await _open("res://scenes/achievements_screen.tscn")
+	await _frames(6)
+	await _capture("09_achievements")
 
 
 ## Renders the game scene at a 19.5:9 phone viewport (landscape — the orientation the game

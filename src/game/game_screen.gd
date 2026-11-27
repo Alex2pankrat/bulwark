@@ -48,6 +48,14 @@ var _speed_index: int = 0
 var _overclock_left: float = 0.0
 var _overlay: Overlay = null
 var _finished := false
+var _tutorial: Tutorial = Tutorial.new()
+var _tutorial_banner: TutorialBanner = null
+var _tutorial_wave_called := false
+var _tutorial_ability_used := false
+var _tutorial_waves_cleared := 0
+var _tutorial_elapsed := 0.0
+var _ability_uses := 0
+var _bosses_killed := 0
 var _ui_accum := 0.0
 var _trauma := 0.0
 var _shake_time := 0.0
@@ -78,7 +86,7 @@ func _ready() -> void:
 	_apply_starting_state()
 	_director.start(level)
 	Audio.play_music("battle")
-	_show_first_hint()
+	_setup_tutorial()
 	resized.connect(_layout)
 	_layout()
 
@@ -143,7 +151,11 @@ func _build_hud() -> void:
 	add_child(_hud)
 	_hud.setup_towers(GameData.tower_ids(), gold)
 	_hud.setup_abilities(_abilities)
-	_hud.set_wave_total(WavePlan.wave_count(level))
+	# Create the director before the HUD reads its endless flag (set_wave_total branches on it).
+	_director = WaveDirector.new()
+	_director.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(_director)
+	_hud.set_wave_total(0 if _director.is_endless() else WavePlan.wave_count(level))
 	_hud.build_selected.connect(_on_build_selected)
 	_hud.call_wave_pressed.connect(_on_call_wave)
 	_hud.speed_pressed.connect(_cycle_speed)
@@ -155,9 +167,6 @@ func _build_hud() -> void:
 	_hud.module_pressed.connect(_on_module)
 	_hud.cancel_pressed.connect(_cancel_build)
 	_hud.panel_closed.connect(_deselect_tower)
-	_director = WaveDirector.new()
-	_director.process_mode = Node.PROCESS_MODE_PAUSABLE
-	add_child(_director)
 	App.settings_changed.connect(_on_setting_changed)
 
 
@@ -215,6 +224,7 @@ func _layout() -> void:
 func _process(delta: float) -> void:
 	if _finished:
 		return
+	_update_tutorial(delta)
 	_ui_accum += delta
 	if _ui_accum >= 0.1:
 		var step := _ui_accum
@@ -610,6 +620,8 @@ func _on_ability_pressed(ability_id: String) -> void:
 		_hud.toast("%s · %ds" % [Loc.t("ability.cooldown"),
 			int(ceil(_abilities.cooldown_left(ability_id)))], Palette.TEXT_MUTED)
 		return
+	_tutorial_ability_used = true
+	_ability_uses += 1
 	if bool(def.get("targeted", false)):
 		_pending_ability = ability_id
 		_build_mode = ""
@@ -871,8 +883,8 @@ func _apply_damage(enemy: Enemy, raw: float, payload: Dictionary) -> void:
 
 func _on_prep_started(wave_index: int, seconds: float) -> void:
 	_hud.set_prep(seconds, wave_index + 1)
-	_hud.set_preview(WavePlan.preview(level, wave_index))
-	if WavePlan.has_boss(level, wave_index):
+	_hud.set_preview(_director.preview(wave_index))
+	if _director.has_boss(wave_index):
 		_hud.toast(Loc.t("game.boss_incoming"), Palette.DANGER)
 
 
@@ -894,13 +906,17 @@ func _on_call_wave() -> void:
 
 
 func _on_wave_started(wave_index: int) -> void:
+	_tutorial_wave_called = true
 	_hud.set_wave_running(wave_index + 1)
 	Audio.play_sfx("wave", -8.0)
 	_fx.clear_all()
 
 
 func _on_wave_cleared(wave_index: int) -> void:
-	var bonus := WavePlan.clear_bonus(level, wave_index)
+	_tutorial_waves_cleared += 1
+	if _director.has_boss(wave_index):
+		_bosses_killed += 1
+	var bonus := _director.clear_bonus(wave_index)
 	var interest := Balance.interest(gold, App.difficulty())
 	gold += bonus + interest
 	gold_earned += bonus + interest
@@ -922,11 +938,25 @@ func _cycle_speed() -> void:
 
 # --- End states -------------------------------------------------------------------------------------------------
 
+## Per-run facts handed to the achievement engine when a level finishes.
+func _run_stats() -> Dictionary:
+	var bosses: Array = []
+	for i in range(_bosses_killed):
+		bosses.append("boss")
+	return {
+		"towers_built": _towers.size(),
+		"ability_uses": _ability_uses,
+		"bosses_killed": bosses,
+		"lives_lost": maxi(0, lives_max - lives),
+	}
+
+
 func _on_victory() -> void:
 	if _finished:
 		return
 	var stars := Balance.stars(true, lives, lives_max)
-	var result := App.record_result(level_index, stars, WavePlan.wave_count(level), true)
+	var result := App.record_result(level_index, stars, WavePlan.wave_count(level), true,
+		_run_stats())
 	_best_hint = bool(result.get("new_best_stars", false))
 	Audio.play_sfx("victory", -4.0)
 	Audio.stop_music(1.0)
@@ -936,7 +966,8 @@ func _on_victory() -> void:
 func _on_defeat() -> void:
 	if _finished:
 		return
-	App.record_result(level_index, 0, maxi(1, _director.wave_index + 1), false)
+	App.record_result(level_index, 0, maxi(1, _director.wave_index + 1), false,
+		_run_stats())
 	Audio.play_sfx("defeat", -4.0)
 	Audio.stop_music(1.0)
 	_show_result(false, 0, {})
@@ -945,6 +976,9 @@ func _on_defeat() -> void:
 
 func _show_result(won: bool, stars: int, result: Dictionary) -> void:
 	_finished = true
+	_tutorial.stop()
+	if _tutorial_banner != null:
+		_tutorial_banner.hide()
 	_speed_index = 0
 	Engine.time_scale = 1.0
 	App.set_paused(true)
@@ -955,9 +989,13 @@ func _show_result(won: bool, stars: int, result: Dictionary) -> void:
 		Loc.t("game.victory") if won else Loc.t("game.defeat"),
 		Loc.t(String(level.get("name_key", ""))))
 	overlay.show_stars(stars)
-	overlay.add_row("wave", Loc.t("game.wave_reached"),
-		"%d / %d" % [_director.wave_index if won else maxi(1, _director.wave_index + 1),
-			WavePlan.wave_count(level)], Palette.ACCENT)
+	var wave_text: String
+	if _director.is_endless():
+		wave_text = "%d" % maxi(1, _director.wave_index + 1)
+	else:
+		wave_text = "%d / %d" % [_director.wave_index if won else maxi(1, _director.wave_index + 1),
+			WavePlan.wave_count(level)]
+	overlay.add_row("wave", Loc.t("game.wave_reached"), wave_text, Palette.ACCENT)
 	overlay.add_row("heart", Loc.t("game.lives_left"), "%d / %d" % [maxi(0, lives), lives_max],
 		Palette.DANGER)
 	overlay.add_row("coin", Loc.t("game.gold_earned"), str(gold_earned), Palette.GOLD)
@@ -994,7 +1032,8 @@ func _open_pause() -> void:
 	var overlay := Overlay.open(self, Loc.t("pause.title"),
 		Loc.t(String(level.get("name_key", ""))))
 	overlay.add_row("wave", Loc.t("hud.wave"),
-		"%d / %d" % [_director.wave_index + 1, WavePlan.wave_count(level)], Palette.ACCENT)
+		"%d" % (_director.wave_index + 1) if _director.is_endless()
+			else "%d / %d" % [_director.wave_index + 1, WavePlan.wave_count(level)], Palette.ACCENT)
 	# Each button closes the dialog first, so the overlay is always freed exactly once.
 	var choose := func(action: Callable) -> void:
 		overlay.close()
@@ -1026,11 +1065,48 @@ func _resume() -> void:
 
 # --- Misc -----------------------------------------------------------------------------------------------------------
 
-func _show_first_hint() -> void:
+## Starts the first-run onboarding unless the player has already seen it. The banner is added
+## above the board and driven by the tutorial controller's signals.
+func _setup_tutorial() -> void:
 	if bool(App.get_setting("tutorial_seen")):
 		return
-	_hud.toast(Loc.t("tip.place"), Palette.TEXT_MUTED)
+	_tutorial_banner = TutorialBanner.new()
+	add_child(_tutorial_banner)
+	_tutorial.step_changed.connect(_on_tutorial_step)
+	_tutorial.completed.connect(_on_tutorial_completed)
+	_tutorial_banner.skip_pressed.connect(_on_tutorial_skip)
+	_tutorial.start()
+
+
+func _on_tutorial_step(step_index: int, total: int, tip_key: String) -> void:
+	if _tutorial_banner != null:
+		_tutorial_banner.set_step(step_index, total, tip_key)
+		_tutorial_banner.show()
+
+
+func _on_tutorial_completed() -> void:
+	if _tutorial_banner != null:
+		_tutorial_banner.hide()
 	App.set_setting("tutorial_seen", true)
+
+
+func _on_tutorial_skip() -> void:
+	_tutorial.skip()
+
+
+func _update_tutorial(delta: float) -> void:
+	if not _tutorial.is_active():
+		return
+	_tutorial_elapsed += delta
+	_tutorial.update({
+		"delta": delta,
+		"elapsed": _tutorial_elapsed,
+		"towers_built": _towers.size(),
+		"wave_called": _tutorial_wave_called,
+		"tower_selected": _selected != null,
+		"ability_used": _tutorial_ability_used,
+		"wave_cleared": _tutorial_waves_cleared,
+	})
 
 
 func _on_setting_changed(key: String, value: Variant) -> void:

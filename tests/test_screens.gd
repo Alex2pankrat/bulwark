@@ -15,6 +15,7 @@ const SCREENS: Array[Dictionary] = [
 	{"name": "MainMenu", "scene": "res://scenes/main_menu.tscn", "min": 10},
 	{"name": "SettingsScreen", "scene": "res://scenes/settings_screen.tscn", "min": 30},
 	{"name": "LevelSelectScreen", "scene": "res://scenes/level_select.tscn", "min": 30},
+	{"name": "AchievementsScreen", "scene": "res://scenes/achievements_screen.tscn", "min": 40},
 	{"name": "CreditsScreen", "scene": "res://scenes/credits_screen.tscn", "min": 10},
 ]
 
