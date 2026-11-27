@@ -13,6 +13,7 @@ env:
 
 jobs:
   tests:
+    timeout-minutes: 25
     name: Tests
     runs-on: ubuntu-latest
     steps:
