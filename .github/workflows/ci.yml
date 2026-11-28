@@ -365,12 +365,19 @@ jobs:
           if not echo "$VERSION" | grep -q '^v[0-9]'; then
             VERSION="v$(sed -n 's/.*config\/version="\([^"]*\)".*/\1/p' project.godot | head -1)"
           fi
+          # MSI Product Version must be four-part (e.g. 1.1.6.0); pad a shorter version so
+          # candle/light accept the Product Version="!(var.VERSION)" in the .wxs.
+          ver="${VERSION#v}"
+          case "$ver" in
+            *.*.*.*) ;;
+            *) ver="$ver.0" ;;
+          esac
           # WIX_BIN points at the candle/light binaries installed in the prior step. Call the
           # .exe explicitly (Git Bash resolves it, but this is unambiguous) and use backslash
           # separators for BuildDir so the path in the .wxs resolves on Windows.
           export PATH="$WIX_BIN:$PATH"
           mkdir -p build/msi
-          "$WIX_BIN/candle.exe" -dVERSION="${VERSION#v}" -dBuildDir="${{ github.workspace }}\\build\\windows" \
+          "$WIX_BIN/candle.exe" -dVERSION="$ver" -dBuildDir="${{ github.workspace }}\\build\\windows" \
             -out build/msi/bulwark.wixobj tools/installer/bulwark.wxs
           "$WIX_BIN/light.exe" -out "build/msi/bulwark-${VERSION}-windows-x86_64.msi" \
             build/msi/bulwark.wixobj
@@ -409,18 +416,16 @@ jobs:
             ls -la /tmp/godot
             exit 1
           fi
-          # Copy the executable out of the bundle to a stable path. Godot's macOS CLI runs fine
-          # standalone for headless import/export; the in-bundle invocation can trip over bundle
-          # resource resolution in a CI context. Strip the quarantine attribute macOS attaches to
-          # archive-unpacked files so the binary is allowed to run.
+          # Run the binary from inside its .app bundle: a standalone copy loses the bundle's
+          # resource files and cannot even run --version. Publish the path for later steps via
+          # GITHUB_ENV. Strip the quarantine attribute macOS attaches to archive-unpacked files
+          # so the binary is permitted to run in a headless CI context.
           godot_bin="$app_bundle/Contents/MacOS/Godot"
           test -f "$godot_bin"
-          mkdir -p /tmp/godot
-          cp "$godot_bin" /tmp/godot/godot
-          chmod +x /tmp/godot/godot
-          xattr -d com.apple.quarantine /tmp/godot/godot 2>/dev/null || true
-          echo "GODOT_BIN=/tmp/godot/godot" >> "$GITHUB_ENV"
-          /tmp/godot/godot --version
+          chmod +x "$godot_bin"
+          xattr -rd com.apple.quarantine "$app_bundle" 2>/dev/null || true
+          echo "GODOT_BIN=$godot_bin" >> "$GITHUB_ENV"
+          "$godot_bin" --version
 
       - name: Install export templates
         run: |
