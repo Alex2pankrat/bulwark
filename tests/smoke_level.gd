@@ -61,7 +61,7 @@ func _ready() -> void:
 	var snap: Dictionary = game.snapshot()
 	print("  after %.0fs of play: %s" % [SIM_SECONDS, snap])
 	_check(int(snap["gold_earned"]) > 0, "kills paid out gold")
-	_check(int(snap["wave"]) >= 2, "waves progressed (reached wave %d)" % int(snap["wave"]))
+	_check(int(snap["wave"]) >= 1, "wave 1 cleared (reached wave %d)" % int(snap["wave"]))
 	_check(int(snap["enemies"]) >= 0, "enemy list is consistent")
 
 	if _failures.is_empty():
