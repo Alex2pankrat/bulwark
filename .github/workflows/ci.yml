@@ -373,11 +373,12 @@ jobs:
             *) ver="$ver.0" ;;
           esac
           # WIX_BIN points at the candle/light binaries installed in the prior step. Call the
-          # .exe explicitly (Git Bash resolves it, but this is unambiguous) and use backslash
-          # separators for BuildDir so the path in the .wxs resolves on Windows.
+          # .exe explicitly (Git Bash resolves it, but this is unambiguous). Use a relative
+          # BuildDir with forward slashes so the $(var.BuildDir)/bulwark.exe path in the .wxs
+          # resolves against the workspace without absolute-path separator issues.
           export PATH="$WIX_BIN:$PATH"
           mkdir -p build/msi
-          "$WIX_BIN/candle.exe" -dVERSION="$ver" -dBuildDir="${{ github.workspace }}\\build\\windows" \
+          "$WIX_BIN/candle.exe" -dVERSION="$ver" -dBuildDir="build/windows" \
             -out build/msi/bulwark.wixobj tools/installer/bulwark.wxs
           "$WIX_BIN/light.exe" -out "build/msi/bulwark-${VERSION}-windows-x86_64.msi" \
             build/msi/bulwark.wixobj
@@ -445,7 +446,7 @@ jobs:
       - name: Export macOS app
         run: |
           mkdir -p build/macos
-          "$GODOT_BIN" --headless --path . --export-release "macOS" build/macos/bulwark.app
+          "$GODOT_BIN" --headless --path "$PWD" --export-release "macOS" build/macos/bulwark.app
 
       - name: Build .dmg
         env:
