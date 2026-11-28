@@ -323,10 +323,13 @@ jobs:
         run: |
           set -euo pipefail
           # --export-release needs the export templates installed headless; without them
-          # Godot aborts the export. The templates.tpz is shared via the godot-downloads artifact.
-          mkdir -p ~/.local/share/godot/export_templates
+          # Godot aborts the export. Godot on Windows looks under %APPDATA%\Godot\export_templates
+          # (not the XDG ~/.local/share path used on Linux). The templates.tpz is shared via the
+          # godot-downloads artifact.
+          tpl_dir="$(cygpath -u "${APPDATA}")/Godot/export_templates"
+          mkdir -p "$tpl_dir"
           unzip -q godot-dl/templates.tpz -d /tmp/templates
-          mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mv /tmp/templates/templates "$tpl_dir/${GODOT_VERSION}.stable"
 
       - name: Import project
         shell: bash
@@ -393,26 +396,31 @@ jobs:
           # survives the universal/platform asset-name changes.
           app_bundle="$(find /tmp/godot -maxdepth 1 -name 'Godot_v*-stable_macos*.app' | head -1)"
           test -n "$app_bundle"
-          mv "$app_bundle/Contents/MacOS/Godot" /tmp/godot/godot
-          chmod +x /tmp/godot/godot
-          /tmp/godot/godot --version
+          # Run the binary from inside its .app bundle: a standalone copy loses the bundle's
+          # resource files. Publish the path for the later steps via GITHUB_ENV.
+          echo "GODOT_BIN=${app_bundle}/Contents/MacOS/Godot" >> "$GITHUB_ENV"
+          chmod +x "${app_bundle}/Contents/MacOS/Godot"
+          "${app_bundle}/Contents/MacOS/Godot" --version
 
       - name: Install export templates
         run: |
           set -euo pipefail
           # --export-release needs the export templates installed headless; without them
-          # Godot aborts the export. The templates.tpz is shared via the godot-downloads artifact.
-          mkdir -p ~/.local/share/godot/export_templates
+          # Godot aborts the export. Godot on macOS looks under
+          # ~/Library/Application Support/Godot/export_templates. The templates.tpz is shared
+          # via the godot-downloads artifact.
+          tpl_dir="$HOME/Library/Application Support/Godot/export_templates"
+          mkdir -p "$tpl_dir"
           unzip -q godot-dl/templates.tpz -d /tmp/templates
-          mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mv /tmp/templates/templates "$tpl_dir/${GODOT_VERSION}.stable"
 
       - name: Import project
-        run: '/tmp/godot/godot --headless --path . --import || true'
+        run: '"$GODOT_BIN" --headless --path . --import || true'
 
       - name: Export macOS app
         run: |
           mkdir -p build/macos
-          /tmp/godot/godot --headless --path . --export-release "macOS" build/macos/bulwark.app
+          "$GODOT_BIN" --headless --path . --export-release "macOS" build/macos/bulwark.app
 
       - name: Build .dmg
         env:
