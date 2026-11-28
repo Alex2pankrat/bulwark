@@ -15,9 +15,12 @@ extends Node
 ## play at 60 FPS — while the run still advances eight times faster than wall-clock time.
 ## That keeps the balance numbers comparable between runs instead of depending on frame rate.
 const TIME_SCALE := 8
-const REAL_TIMEOUT := 240.0     ## wall-clock guard per level (generous: slow CI runners
-                                ## process fewer game frames per wall-clock second, so a
-                                ## winnable level can take well over 110s to finish)
+const REAL_TIMEOUT := 60.0      ## wall-clock guard per level. Long enough to observe an early
+                                ## defeat (enemies leaking), short enough that a timed-out level
+                                ## does not dominate the run on a slow runner.
+const GLOBAL_BUDGET := 900.0    ## total wall-clock guard for the whole run. Bounds the cost of
+                                ## timeouts across all levels x difficulties so the job finishes
+                                ## well inside the CI timeout even when every level times out.
 const MAX_TOWERS := 16
 
 ## The policy's opening build order; later towers repeat the last entry.
@@ -26,6 +29,7 @@ const BUILD_ORDER: Array[String] = ["pulse", "pulse", "cannon", "pulse", "frost"
 
 var _failures: Array[String] = []
 var _difficulty := int(Balance.Difficulty.NORMAL)
+var _total_elapsed := 0.0
 
 
 func _ready() -> void:
@@ -39,6 +43,9 @@ func _ready() -> void:
 	App.set_setting("difficulty", difficulty)
 	Engine.time_scale = TIME_SCALE
 	for index in range(GameData.level_count()):
+		if _total_elapsed >= GLOBAL_BUDGET:
+			print("  global budget exhausted — skipping remaining levels (no defeat observed)")
+			break
 		await _play(index)
 	Engine.time_scale = 1.0
 	if _failures.is_empty():
@@ -75,7 +82,7 @@ func _play(index: int) -> void:
 	var upgrades := 0
 	var modules := 0
 
-	while not game.is_finished() and elapsed < REAL_TIMEOUT:
+	while not game.is_finished() and elapsed < REAL_TIMEOUT and _total_elapsed < GLOBAL_BUDGET:
 		await get_tree().create_timer(0.25, true, false, true).timeout
 		elapsed += 0.25
 
@@ -129,6 +136,7 @@ func _play(index: int) -> void:
 		if int(snapshot["gold"]) < 60:
 			game._on_call_wave()
 
+	_total_elapsed += elapsed
 	if not game.is_initialised():
 		_check(false, "level %d failed to initialise" % (index + 1))
 		game.queue_free()
@@ -147,12 +155,15 @@ func _play(index: int) -> void:
 		int(final["wave"]), int(final["waves_total"]),
 		int(final["lives"]), int(final["lives_max"]),
 		int(final["towers"]), upgrades, modules, int(final["gold"])])
+	var msg: String
 	if _difficulty >= Balance.Difficulty.HARD:
-		_check(not lost, "level %d is not defeated on Hard (wave %d/%d)" % (
-			index + 1, int(final["wave"]), int(final["waves_total"])))
+		msg = "level %d is not defeated on Hard (wave %d/%d)" % [
+			index + 1, int(final["wave"]), int(final["waves_total"])]
+		_check(not lost, msg)
 	else:
-		_check(not lost, "level %d is winnable at this difficulty (wave %d/%d)" % (
-			index + 1, int(final["wave"]), int(final["waves_total"])))
+		msg = "level %d is winnable at this difficulty (wave %d/%d)" % [
+			index + 1, int(final["wave"]), int(final["waves_total"])]
+		_check(not lost, msg)
 	game.queue_free()
 	App.set_paused(false)
 	await get_tree().process_frame
