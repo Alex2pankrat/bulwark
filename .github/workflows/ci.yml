@@ -30,9 +30,9 @@ jobs:
           curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot-dl/godot.zip \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot-dl/godot-win64.zip \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_win64.zip"
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_win64.exe.zip"
           curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot-dl/godot-macos.zip \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.zip"
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
           curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot-dl/templates.tpz \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           unzip -q /tmp/godot-dl/godot.zip -d /opt/godot
@@ -311,7 +311,11 @@ jobs:
           set -euo pipefail
           mkdir -p /c/godot
           unzip -q godot-dl/godot-win64.zip -d /c/godot
-          mv "/c/godot/Godot_v${GODOT_VERSION}-stable_win64.exe" /c/godot/godot.exe
+          # The archive extracts to Godot_v<ver>-stable_win64.exe; locate it rather than
+          # hard-coding the exact suffix so the step survives asset-name changes.
+          win_exe="$(find /c/godot -maxdepth 1 -name 'Godot_v*-stable_win64.exe' | head -1)"
+          test -n "$win_exe"
+          mv "$win_exe" /c/godot/godot.exe
           /c/godot/godot.exe --version
 
       - name: Install export templates
@@ -385,7 +389,11 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/godot
           unzip -q godot-dl/godot-macos.zip -d /tmp/godot
-          mv "/tmp/godot/Godot_v${GODOT_VERSION}-stable_macos.app/Contents/MacOS/Godot" /tmp/godot/godot
+          # The archive extracts to Godot_v<ver>-stable_macos*.app; locate it so the step
+          # survives the universal/platform asset-name changes.
+          app_bundle="$(find /tmp/godot -maxdepth 1 -name 'Godot_v*-stable_macos*.app' | head -1)"
+          test -n "$app_bundle"
+          mv "$app_bundle/Contents/MacOS/Godot" /tmp/godot/godot
           chmod +x /tmp/godot/godot
           /tmp/godot/godot --version
 
