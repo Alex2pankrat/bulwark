@@ -35,6 +35,9 @@ func _build() -> void:
 	column.add_child(UIKit.button(Loc.t("menu.levels"), "", func() -> void:
 		Audio.play_sfx("ui_click", -6.0)
 		App.goto_scene(App.LEVEL_SELECT_SCENE)))
+	column.add_child(UIKit.button(Loc.t("menu.achievements"), "GhostButton", func() -> void:
+		Audio.play_sfx("ui_click", -6.0)
+		App.goto_scene(App.ACHIEVEMENTS_SCENE)))
 	column.add_child(UIKit.button(Loc.t("menu.settings"), "GhostButton", func() -> void:
 		App.open_settings(App.MENU_SCENE)))
 	column.add_child(UIKit.button(Loc.t("menu.credits"), "GhostButton", func() -> void:

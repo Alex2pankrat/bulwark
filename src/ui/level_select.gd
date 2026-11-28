@@ -79,11 +79,19 @@ func _build_card(index: int) -> Control:
 		desc.add_theme_font_size_override("font_size", 16)
 	body.add_child(desc)
 
-	var star_row := UIKit.hbox(4)
-	for i in range(3):
-		star_row.add_child(Glyph.of("star", 18 if not compact else 22,
-			Palette.GOLD if i < stars else Palette.TEXT_DIM))
-	body.add_child(star_row)
+	var endless := String(level.get("mode", "")) == "endless"
+	if endless:
+		# Survival mode has no star rating; show a survival marker instead.
+		var badge := UIKit.hbox(6)
+		badge.add_child(Glyph.of("wave", 16 if not compact else 20, Palette.ACCENT))
+		badge.add_child(UIKit.label(Loc.t("level.endless.name"), "TinyLabel"))
+		body.add_child(badge)
+	else:
+		var star_row := UIKit.hbox(4)
+		for i in range(3):
+			star_row.add_child(Glyph.of("star", 18 if not compact else 22,
+				Palette.GOLD if i < stars else Palette.TEXT_DIM))
+		body.add_child(star_row)
 
 	var progress_label := UIKit.label(
 		Loc.tf("level.progress", [int(progress.get("best_wave", 0))]), "TinyLabel")

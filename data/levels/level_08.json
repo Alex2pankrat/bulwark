@@ -1,0 +1,60 @@
+{
+	"id": "level_08",
+	"name_key": "level.8.name",
+	"desc_key": "level.8.desc",
+	"grid": {
+		"cols": 14,
+		"rows": 10,
+		"cell": 64
+	},
+	"path": [
+		[-1, 4],
+		[3, 4],
+		[3, 0],
+		[7, 0],
+		[7, 9],
+		[10, 9],
+		[10, 2],
+		[13, 2],
+		[13, 7],
+		[14, 7]
+	],
+	"scenery": [
+		[0, 0, "tree_a"],
+		[1, 0, "rock_a"],
+		[5, 0, "bush"],
+		[9, 0, "tree_b"],
+		[12, 0, "flower"],
+		[0, 9, "rock_b"],
+		[4, 9, "tree_a"],
+		[8, 9, "bush"],
+		[11, 9, "plant"],
+		[0, 7, "tree_b"],
+		[5, 7, "rock_a"],
+		[8, 5, "bush"],
+		[11, 5, "rock_b"],
+		[2, 6, "flower"],
+		[6, 3, "tree_a"]
+	],
+	"start_gold": 560,
+	"lives": 20,
+	"prep_time": 17.0,
+	"hp_mult": 1.32,
+	"waves": [
+		{"groups": [{"enemy": "grunt", "count": 10, "interval": 0.6}], "bonus": 24},
+		{"groups": [{"enemy": "runner", "count": 12, "interval": 0.35}, {"enemy": "swarm", "count": 12, "interval": 0.2, "start": 3.0}], "bonus": 28},
+		{"groups": [{"enemy": "brute", "count": 3, "interval": 1.5}, {"enemy": "grunt", "count": 10, "interval": 0.55, "start": 2.0}], "bonus": 32},
+		{"groups": [{"enemy": "flyer", "count": 8, "interval": 0.7}, {"enemy": "runner", "count": 12, "interval": 0.3, "start": 2.0}], "bonus": 36},
+		{"groups": [{"enemy": "swarm", "count": 24, "interval": 0.16}, {"enemy": "medic", "count": 1, "interval": 1.0, "start": 3.0}], "bonus": 40},
+		{"groups": [{"enemy": "brute", "count": 5, "interval": 1.4}, {"enemy": "flyer", "count": 7, "interval": 0.8, "start": 2.0}], "bonus": 44},
+		{"groups": [{"enemy": "grunt", "count": 16, "interval": 0.45}, {"enemy": "runner", "count": 12, "interval": 0.28, "start": 4.0}, {"enemy": "medic", "count": 2, "interval": 2.0, "start": 6.0}], "bonus": 48},
+		{"groups": [{"enemy": "brute", "count": 6, "interval": 1.3}, {"enemy": "flyer", "count": 10, "interval": 0.6, "start": 2.0}], "bonus": 52},
+		{"groups": [{"enemy": "swarm", "count": 30, "interval": 0.15}, {"enemy": "brute", "count": 5, "interval": 1.4, "start": 3.0}], "bonus": 56},
+		{"groups": [{"enemy": "flyer", "count": 12, "interval": 0.55}, {"enemy": "medic", "count": 2, "interval": 2.0, "start": 2.0}, {"enemy": "brute", "count": 5, "interval": 1.4, "start": 4.0}], "bonus": 60},
+		{"groups": [{"enemy": "brute", "count": 7, "interval": 1.2}, {"enemy": "runner", "count": 18, "interval": 0.26, "start": 2.0}], "bonus": 64},
+		{"groups": [{"enemy": "swarm", "count": 36, "interval": 0.14}, {"enemy": "flyer", "count": 10, "interval": 0.6, "start": 3.0}, {"enemy": "medic", "count": 3, "interval": 2.0, "start": 5.0}], "bonus": 68},
+		{"groups": [{"enemy": "brute", "count": 8, "interval": 1.1}, {"enemy": "grunt", "count": 18, "interval": 0.45, "start": 2.0}, {"enemy": "flyer", "count": 10, "interval": 0.6, "start": 5.0}], "bonus": 72},
+		{"groups": [{"enemy": "swarm", "count": 40, "interval": 0.13}, {"enemy": "brute", "count": 7, "interval": 1.2, "start": 3.0}, {"enemy": "medic", "count": 3, "interval": 2.0, "start": 2.0}], "bonus": 76},
+		{"groups": [{"enemy": "boss", "count": 2, "interval": 6.0}, {"enemy": "brute", "count": 8, "interval": 1.3, "start": 2.0}, {"enemy": "flyer", "count": 12, "interval": 0.55, "start": 6.0}, {"enemy": "medic", "count": 3, "interval": 2.0, "start": 4.0}], "bonus": 140}
+	]
+}

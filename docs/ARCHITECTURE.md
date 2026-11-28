@@ -51,11 +51,14 @@ API of `GameScreen` and reacts to signals.
 | `core/build_grid.gd` | 166 | Marks path/reserved cells, `can_place()` returning a **reason key** rather than a bool |
 | `core/targeting.gd` | 139 | Five priorities (first/last/closest/strongest/weakest) over a pre-filtered candidate list |
 | `core/damage.gd` | 71 | Armour, resistances, min-damage floor, splash falloff, chain falloff, mark bonus |
-| `core/wave_plan.gd` | 81 | Turns a level's wave list into spawn events + gold rewards; expansion preview |
-| `core/save_store.gd` | 121 | Versioned `user://` save with atomic write, backup recovery and migration |
-| `core/settings_model.gd` | 75 | Defaults, clamping and validation for the settings dictionary |
-| `core/l10n.gd` | 394 | EN/RU string table + `tf()` placeholder formatting |
-| `game/game_screen.gd` | 982 | The level controller: wires everything, owns the public API the tests drive |
+| `core/wave_plan.gd` | 81 | Turns a level's wave list into spawn events + gold rewards; expansion preview; **endless mode generator** |
+| `core/save_store.gd` | 150 | Versioned `user://` save with atomic write, backup recovery, migration, **export/import** |
+| `core/settings_model.gd` | 77 | Defaults, clamping and validation for the settings dictionary |
+| `core/l10n.gd` | 305 | EN string table (the `.po` msgid source) + `Translation`-backed `tf()`/`translate()` |
+| `core/achievements.gd` | 165 | Defined achievements + passive snapshot evaluator; unlocks persisted in the save |
+| `core/perf_overlay.gd` | 95 | Optional debug CanvasLayer: live FPS, frame time, draw calls and objects |
+| `game/game_screen.gd` | 1109 | The level controller: wires everything, owns the public API the tests drive, drives onboarding |
+| `game/tutorial.gd` | 95 | First-run onboarding stepper: context-driven tips with per-step completion conditions |
 | `game/enemy.gd` | 230 | Movement along the path, status effects, menders, splitting, leak handling |
 | `game/tower.gd` | 177 | Cooldown, targeting query, fire → projectile/beam/chain, aura application |
 | `game/projectile.gd` | ~110 | Homing or ballistic travel, impact, splash and chain resolution |
@@ -65,8 +68,10 @@ API of `GameScreen` and reacts to signals.
 | `game/fx.gd` | 180 | **One node** for all transient effects, drawn in a single pass, no per-hit node churn |
 | `ui/theme_factory.gd` | 205 | Builds the whole visual identity as a `Theme` in code (cached, invalidated on exit) |
 | `ui/ui_kit.gd` | 176 | Shared builders: cards, chips, buttons, stat rows — keeps the screens declarative |
-| `ui/hud.gd` | 346 | Top/bottom bars, status card, wave preview, speed and pause |
+| `ui/hud.gd` | 360 | Top/bottom bars, status card, wave preview, speed and pause (endless shows bare wave #) |
 | `ui/tower_panel.gd` | 214 | Inspect/upgrade/module/sell panel, shows the *next* level's delta before purchase |
+| `ui/tutorial_banner.gd` | 80 | Dismissible onboarding tip card shown above the board during the first run |
+| `ui/achievements_screen.gd` | 90 | Achievements gallery: progress header + one card per achievement (locked/unlocked) |
 
 ## The level lifecycle
 
@@ -117,6 +122,17 @@ corrupt progress. `SaveStore.migrate()` upgrades older versions field by field; 
 unparseable falls back to defaults and re-saves. Settings live in the same file, which keeps
 "reset everything" a single delete.
 
+**Save transfer** — `SaveStore.export_to()` writes the whole profile to an arbitrary `.json`
+(atomic, like a normal save); `import_from()` reads one back. `App.export_save()` /
+`App.import_save()` open a native file dialog on desktop and fall back to a fixed
+`user://bulwark_save_<action>.json` path on headless/mobile. Import replaces settings and
+progress and re-evaluates achievements against the imported profile.
+
+**Achievements** — unlocked ids are stored in `progress["achievements"]`. `App` builds a
+fact snapshot (`_build_achievement_snapshot`) from persisted progress plus per-run stats and
+calls `Achievements.evaluate()` at level end and on load, so newly-met criteria unlock even
+when the player returns after meeting them.
+
 ## Rendering and platform notes
 
 - **Compatibility (GLES3) renderer** on every target: one shader/feature set to verify, and it
@@ -135,7 +151,7 @@ unparseable falls back to defaults and re-saves. Settings live in the same file,
 
 | Harness | What it protects |
 |---|---|
-| `tests/test_core.tscn` | Rules: pathing carry-over, placement reasons, targeting order, damage maths, economy monotonicity, JSON/l10n parity (every key referenced actually exists in both languages), save round-trip + migration |
+| `tests/test_core.tscn` | Rules: pathing carry-over, placement reasons, targeting order, damage maths, economy monotonicity, JSON/l10n parity (every key referenced actually exists in both languages), save round-trip + migration, **save export/import**, **achievement unlock logic** |
 | `tests/smoke_level.tscn` | Wiring: the real level scene boots, towers can be placed on legal cells and are refused on illegal ones *with the right reason key*, selection works, 40 s of simulation runs without errors |
 | `tests/autoplay.tscn` | Balance: a scripted competent player must clear all three missions on Normal, and survive to the endgame on Hard. Runs at a fixed timestep so numbers are comparable across commits |
 
@@ -149,8 +165,12 @@ build, so layout regressions are visible rather than argued about.
   either language is missing).
 - **New enemy** → `data/enemies.json` + sprite + two l10n keys; special behaviour goes in
   `enemy.gd` behind a capability flag (`splits_into`, `heals_radius`, `is_air`).
-- **New mission** → drop `data/levels/level_07.json` (any `level_*.json` is auto-discovered and
-  ordered by filename) + `level.7.name` / `level.7.desc` in both l10n tables. Grids, paths,
-  scenery and waves are all data.
+- **New mission** → drop `data/levels/level_09.json` (any `level_*.json` is auto-discovered and
+  ordered by filename) + `level.9.name` / `level.9.desc` in both l10n tables. Grids, paths,
+  scenery and waves are all data. An **endless** mode entry uses `"mode": "endless"` and one
+  seed wave; `WavePlan.endless_wave()` generates the escalating waves after it.
+- **New achievement** → one entry in `Achievements.DEFINITIONS` (title/desc/icon keys) plus an
+  `_check_<id>(snapshot)` predicate. The snapshot keys are listed in
+  `App._build_achievement_snapshot`.
 - **New ability** → one entry in `abilities.gd`'s table plus an icon glyph and a HUD button;
   the cooldown/targeting machinery is generic.

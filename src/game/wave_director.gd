@@ -41,6 +41,45 @@ func wave_total() -> int:
 	return WavePlan.wave_count(level)
 
 
+func is_endless() -> bool:
+	return WavePlan.is_endless(level)
+
+
+## The wave dictionary for `wave_index`: the authored wave when it exists, otherwise a
+## procedurally generated endless wave (synthetic level with a single wave at index 0).
+func wave_data(wave_index: int) -> Dictionary:
+	if is_endless() and wave_index >= WavePlan.wave_count(level):
+		return WavePlan.endless_wave(wave_index)
+	return WavePlan.wave_data(level, wave_index)
+
+
+## Index to pass to WavePlan for the wave at `wave_index` (0 for generated endless waves).
+func _wave_plan_index(wave_index: int) -> int:
+	if is_endless() and wave_index >= WavePlan.wave_count(level):
+		return 0
+	return wave_index
+
+
+## Aggregated preview for the HUD, valid for both authored and endless waves.
+func preview(wave_index: int) -> Array[Dictionary]:
+	return WavePlan.preview(_level_for(wave_index), _wave_plan_index(wave_index))
+
+
+func has_boss(wave_index: int) -> bool:
+	return WavePlan.has_boss(_level_for(wave_index), _wave_plan_index(wave_index))
+
+
+func clear_bonus(wave_index: int) -> int:
+	return WavePlan.clear_bonus(_level_for(wave_index), _wave_plan_index(wave_index))
+
+
+## For generated endless waves, wrap the single wave in a level-shaped dict WavePlan can read.
+func _level_for(wave_index: int) -> Dictionary:
+	if is_endless() and wave_index >= WavePlan.wave_count(level):
+		return {"waves": [wave_data(wave_index)]}
+	return level
+
+
 func is_prep() -> bool:
 	return state == State.PREP
 
@@ -56,7 +95,9 @@ func prep_fraction() -> float:
 
 
 func _begin_prep() -> void:
-	if wave_index >= wave_total():
+	# Endless mode never finishes: the wave index is unbounded and waves are generated on the
+	# fly, so there is no "all waves cleared" to signal.
+	if not is_endless() and wave_index >= wave_total():
 		state = State.FINISHED
 		all_waves_cleared.emit()
 		return
@@ -79,7 +120,7 @@ func call_wave_now() -> float:
 
 
 func _launch_wave() -> void:
-	_timeline = WavePlan.timeline(level, wave_index)
+	_timeline = WavePlan.timeline(_level_for(wave_index), _wave_plan_index(wave_index))
 	_cursor = 0
 	_clock = 0.0
 	state = State.SPAWNING
@@ -128,7 +169,7 @@ func _complete_wave() -> void:
 	var cleared := wave_index
 	wave_index += 1
 	wave_cleared.emit(cleared)
-	if wave_index >= wave_total():
+	if not is_endless() and wave_index >= wave_total():
 		state = State.FINISHED
 		all_waves_cleared.emit()
 		_completing = false

@@ -8,6 +8,47 @@ extends RefCounted
 
 const MAX_GROUPS := 8
 
+## Endless survival: a boss arrives every this-many waves.
+const ENDLESS_BOSS_EVERY := 10
+
+
+## True when the level runs as an endless survival gauntlet (waves keep escalating, no victory).
+static func is_endless(level: Dictionary) -> bool:
+	return String(level.get("mode", "campaign")) == "endless"
+
+
+## Procedurally generates the wave for endless index `index` (0-based). Deterministic in the
+## index (no RNG) so a given wave is always the same mix, just scaled up. A boss joins every
+## ENDLESS_BOSS_EVERY waves.
+static func endless_wave(index: int) -> Dictionary:
+	var count := 6 + index
+	var groups: Array[Dictionary] = []
+	match index % 4:
+		0:
+			groups = [
+				{"enemy": "grunt", "count": count, "interval": 0.7},
+				{"enemy": "runner", "count": maxi(2, count / 3), "interval": 0.4, "start": 2.0},
+			]
+		1:
+			groups = [
+				{"enemy": "swarm", "count": count * 2, "interval": 0.2},
+				{"enemy": "brute", "count": maxi(1, count / 4), "interval": 1.6, "start": 2.0},
+			]
+		2:
+			groups = [
+				{"enemy": "flyer", "count": maxi(3, count / 2), "interval": 0.8},
+				{"enemy": "grunt", "count": count, "interval": 0.6, "start": 2.0},
+			]
+		_:
+			groups = [
+				{"enemy": "brute", "count": maxi(2, count / 3), "interval": 1.5},
+				{"enemy": "medic", "count": 1, "interval": 1.0, "start": 3.0},
+				{"enemy": "runner", "count": count, "interval": 0.35, "start": 1.0},
+			]
+	if index > 0 and (index + 1) % ENDLESS_BOSS_EVERY == 0:
+		groups.append({"enemy": "boss", "count": 1, "interval": 1.0, "start": 1.0})
+	return {"groups": groups, "bonus": 20 + index * 4}
+
 
 static func wave_count(level: Dictionary) -> int:
 	return (level.get("waves", []) as Array).size()

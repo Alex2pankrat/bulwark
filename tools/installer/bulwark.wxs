@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WiX manifest for the Bulwark Windows installer (.msi).
+
+     The Godot Windows export is a single self-contained bulwark.exe (embed_pck=true), so the
+     installer just places that one file and adds a Start Menu shortcut. The version is injected
+     by candle via -dVERSION=<tag> so the .msi version tracks the release automatically. -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="*" Name="Bulwark" Language="1033" Version="!(var.VERSION)"
+		Manufacturer="Bulwark" UpgradeCode="6F2A1C4E-5B3D-4A7F-9E8C-1D2B3A4C5E6F">
+		<Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine"
+			Description="Bulwark - a minimalist tower defense" />
+		<MajorUpgrade LowestRequired="1"
+			DowngradeErrorMessage="A newer version of Bulwark is already installed." />
+		<MediaTemplate EmbedCab="yes" />
+
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFilesFolder">
+				<Directory Id="INSTALLFOLDER" Name="Bulwark" />
+			</Directory>
+		</Directory>
+
+		<Feature Id="MainFeature" Title="Bulwark" Level="1">
+			<ComponentGroupRef Id="BulwarkFiles" />
+			<ComponentRef Id="ApplicationShortcut" />
+		</Feature>
+
+		<ComponentGroup Id="BulwarkFiles" Directory="INSTALLFOLDER">
+			<File Id="BulwarkExe" Source="$(var.BuildDir)/bulwark.exe" KeyPath="yes" />
+		</ComponentGroup>
+
+		<DirectoryRef Id="ProgramMenuFolder">
+			<Component Id="ApplicationShortcut" Guid="A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D">
+				<Shortcut Id="ApplicationStartMenuShortcut" Name="Bulwark"
+					Target="[INSTALLFOLDER]bulwark.exe" WorkingDirectory="INSTALLFOLDER" />
+				<RemoveFolder Id="CleanupShortcut" On="uninstall" />
+				<RegistryValue Root="HKCU" Key="Software\Bulwark" Name="Installed"
+					Type="integer" Value="1" KeyPath="yes" />
+			</Component>
+		</DirectoryRef>
+	</Product>
+</Wix>

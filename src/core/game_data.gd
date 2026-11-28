@@ -112,6 +112,20 @@ static func level_count() -> int:
 	return levels().size()
 
 
+## Number of campaign levels (excludes the endless mode entry).
+static func campaign_level_count() -> int:
+	var count := 0
+	for level in levels():
+		if String(level.get("mode", "")) != "endless":
+			count += 1
+	return count
+
+
+## Highest achievable star total across all campaign levels (one per level).
+static func total_stars() -> int:
+	return campaign_level_count() * 3
+
+
 static func level(index: int) -> Dictionary:
 	var all := levels()
 	if index < 0 or index >= all.size():
