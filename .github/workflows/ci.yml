@@ -370,7 +370,10 @@ jobs:
           mkdir -p build/msi
           candle -dVERSION="${VERSION#v}" -dBuildDir="${{ github.workspace }}/build/windows" \
             -out build/msi/bulwark.wixobj tools/installer/bulwark.wxs
-          light -ext WixUIExtension -out "build/msi/bulwark-${VERSION}-windows-x86_64.msi" \
+          # The manifest uses no WixUI, so no extension is needed; -ext would require the
+          # WixUIExtension binary to be resolvable, which the portable binaries layout does not
+          # guarantee.
+          light -out "build/msi/bulwark-${VERSION}-windows-x86_64.msi" \
             build/msi/bulwark.wixobj
 
       - name: Upload .msi
@@ -412,9 +415,11 @@ jobs:
           godot_bin="$app_bundle/Contents/MacOS/Godot"
           test -f "$godot_bin"
           chmod +x "$godot_bin"
+          # Files unpacked from an archive can carry macOS's quarantine attribute, which makes a
+          # headless CI invocation refuse to run the binary. Strip it (recursively on the bundle).
+          xattr -rd com.apple.quarantine "$app_bundle" 2>/dev/null || true
           echo "GODOT_BIN=$godot_bin" >> "$GITHUB_ENV"
-          # Sanity check; tolerate a non-zero exit so a --version quirk does not mask a valid binary.
-          "$godot_bin" --version || echo "warning: godot --version exited non-zero"
+          "$godot_bin" --version
 
       - name: Install export templates
         run: |
