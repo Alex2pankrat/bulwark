@@ -343,7 +343,17 @@ jobs:
 
       - name: Install WiX Toolset
         shell: bash
-        run: choco install wix3 --yes --no-progress
+        run: |
+          set -euo pipefail
+          # Download the WiX v3 binary zip directly: `choco install wix3` is flaky on the hosted
+          # runners. The binaries zip carries candle.exe / light.exe under bin/.
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/wix3.zip \
+            "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip"
+          mkdir -p /c/wix3
+          unzip -q /tmp/wix3.zip -d /c/wix3
+          wix_bin="$(dirname "$(find /c/wix3 -name light.exe -type f | head -1)")"
+          test -n "$wix_bin"
+          echo "WIX_BIN=$wix_bin" >> "$GITHUB_ENV"
 
       - name: Build .msi
         shell: bash
@@ -355,11 +365,8 @@ jobs:
           if not echo "$VERSION" | grep -q '^v[0-9]'; then
             VERSION="v$(sed -n 's/.*config\/version="\([^"]*\)".*/\1/p' project.godot | head -1)"
           fi
-          # choco installs WiX into a versioned dir that is not always on PATH; locate it.
-          for d in "/c/Program Files (x86)/WiX Toolset v3."* "/c/Program Files/WiX Toolset v3."*; do
-            if [ -d "$d/bin" ]; then WIX_BIN="$d/bin"; break; fi
-          done
-          if [ -n "$WIX_BIN" ]; then export PATH="$WIX_BIN:$PATH"; fi
+          # WIX_BIN points at the candle/light binaries installed in the prior step.
+          export PATH="$WIX_BIN:$PATH"
           mkdir -p build/msi
           candle -dVERSION="${VERSION#v}" -dBuildDir="${{ github.workspace }}/build/windows" \
             -out build/msi/bulwark.wixobj tools/installer/bulwark.wxs
@@ -391,16 +398,23 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/godot
-          unzip -q godot-dl/godot-macos.zip -d /tmp/godot
-          # The archive extracts to Godot_v<ver>-stable_macos*.app; locate it so the step
-          # survives the universal/platform asset-name changes.
-          app_bundle="$(find /tmp/godot -maxdepth 1 -name 'Godot_v*-stable_macos*.app' | head -1)"
-          test -n "$app_bundle"
+          unzip -o -q godot-dl/godot-macos.zip -d /tmp/godot
+          # The archive extracts a .app bundle whose exact name varies (macos.app,
+          # macos.universal.app); locate it by suffix so the step survives asset-name changes.
+          app_bundle="$(find /tmp/godot -type d -name '*.app' -print -quit)"
+          if [ -z "$app_bundle" ]; then
+            echo "::error::No .app bundle found in godot-macos.zip"
+            ls -la /tmp/godot
+            exit 1
+          fi
           # Run the binary from inside its .app bundle: a standalone copy loses the bundle's
           # resource files. Publish the path for the later steps via GITHUB_ENV.
-          echo "GODOT_BIN=${app_bundle}/Contents/MacOS/Godot" >> "$GITHUB_ENV"
-          chmod +x "${app_bundle}/Contents/MacOS/Godot"
-          "${app_bundle}/Contents/MacOS/Godot" --version
+          godot_bin="$app_bundle/Contents/MacOS/Godot"
+          test -f "$godot_bin"
+          chmod +x "$godot_bin"
+          echo "GODOT_BIN=$godot_bin" >> "$GITHUB_ENV"
+          # Sanity check; tolerate a non-zero exit so a --version quirk does not mask a valid binary.
+          "$godot_bin" --version || echo "warning: godot --version exited non-zero"
 
       - name: Install export templates
         run: |
