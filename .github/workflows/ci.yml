@@ -22,26 +22,33 @@ jobs:
       - name: Install Godot
         run: |
           set -euo pipefail
-          mkdir -p /opt/godot
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot.zip \
+          mkdir -p /opt/godot /tmp/godot-dl
+          # Fetch every platform binary and the export templates here, on the ubuntu runner, and
+          # share them through an artifact. Each job downloading release assets itself makes
+          # concurrent anonymous downloads that trip GitHub's per-IP asset budget, so the Tests
+          # job is the single downloader and every other job reuses the artifact.
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot-dl/godot.zip \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q /tmp/godot.zip -d /opt/godot
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot-dl/godot-win64.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_win64.zip"
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot-dl/godot-macos.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.zip"
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot-dl/templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q /tmp/godot-dl/godot.zip -d /opt/godot
           mv "/opt/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT_BIN"
           chmod +x "$GODOT_BIN"
           "$GODOT_BIN" --version
-          # The export templates are fetched here, once, and shared with every export job
-          # through an artifact: simultaneous anonymous downloads of the same release
-          # assets otherwise trip GitHub's per-IP asset budget.
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/templates.tpz \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
 
       - name: Share engine downloads with export jobs
         uses: actions/upload-artifact@v4
         with:
           name: godot-downloads
           path: |
-            /tmp/godot.zip
-            /tmp/templates.tpz
+            /tmp/godot-dl/godot.zip
+            /tmp/godot-dl/godot-win64.zip
+            /tmp/godot-dl/godot-macos.zip
+            /tmp/godot-dl/templates.tpz
           if-no-files-found: error
 
       - name: Import project
@@ -293,13 +300,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Godot
+        uses: actions/download-artifact@v4
+        with:
+          name: godot-downloads
+          path: godot-dl
+
+      - name: Unpack Godot
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot.zip \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_win64.zip"
           mkdir -p /c/godot
-          unzip -q /tmp/godot.zip -d /c/godot
+          unzip -q godot-dl/godot-win64.zip -d /c/godot
           mv "/c/godot/Godot_v${GODOT_VERSION}-stable_win64.exe" /c/godot/godot.exe
           /c/godot/godot.exe --version
 
@@ -308,11 +319,9 @@ jobs:
         run: |
           set -euo pipefail
           # --export-release needs the export templates installed headless; without them
-          # Godot aborts the export. Download the platform-agnostic templates.tpz once.
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/templates.tpz \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          # Godot aborts the export. The templates.tpz is shared via the godot-downloads artifact.
           mkdir -p ~/.local/share/godot/export_templates
-          unzip -q /tmp/templates.tpz -d /tmp/templates
+          unzip -q godot-dl/templates.tpz -d /tmp/templates
           mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
       - name: Import project
@@ -366,12 +375,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Godot
+        uses: actions/download-artifact@v4
+        with:
+          name: godot-downloads
+          path: godot-dl
+
+      - name: Unpack Godot
         run: |
           set -euo pipefail
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/godot.zip \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.zip"
           mkdir -p /tmp/godot
-          unzip -q /tmp/godot.zip -d /tmp/godot
+          unzip -q godot-dl/godot-macos.zip -d /tmp/godot
           mv "/tmp/godot/Godot_v${GODOT_VERSION}-stable_macos.app/Contents/MacOS/Godot" /tmp/godot/godot
           chmod +x /tmp/godot/godot
           /tmp/godot/godot --version
@@ -380,11 +393,9 @@ jobs:
         run: |
           set -euo pipefail
           # --export-release needs the export templates installed headless; without them
-          # Godot aborts the export. Download the platform-agnostic templates.tpz once.
-          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /tmp/templates.tpz \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          # Godot aborts the export. The templates.tpz is shared via the godot-downloads artifact.
           mkdir -p ~/.local/share/godot/export_templates
-          unzip -q /tmp/templates.tpz -d /tmp/templates
+          unzip -q godot-dl/templates.tpz -d /tmp/templates
           mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
       - name: Import project
